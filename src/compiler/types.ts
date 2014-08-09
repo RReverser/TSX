@@ -201,6 +201,17 @@ module ts {
         ModuleBlock,
         ImportDeclaration,
         ExportAssignment,
+        // JSX
+        XJSIdentifierToken,
+        XJSTextToken,
+        XJSIdentifier,
+        XJSMemberExpression,
+        XJSEmptyExpression,
+        XJSExpressionContainer,
+        XJSElement,
+        XJSOpeningElement,
+        XJSClosingElement,
+        XJSAttribute,
         // Enum
         EnumMember,
         // Top-level nodes
@@ -516,6 +527,36 @@ module ts {
     export interface ExportAssignment extends Statement {
         exportName: Identifier;
     }
+
+    export interface XJSTagName extends Node { }
+
+    export interface XJSIdentifier extends Identifier, XJSTagName { }
+
+    export interface XJSMemberExpression extends PropertyAccess, XJSTagName { }
+
+    export interface XJSEmptyExpression extends Expression { }
+
+    export interface XJSExpressionContainer extends Node { }
+
+    export interface XJSElement extends Expression {
+        openingElement: XJSOpeningElement;
+        closingElement?: XJSClosingElement;
+        children: NodeArray<Node>;
+    }
+
+    export interface XJSOpeningElement extends Node {
+        name: XJSTagName;
+        selfClosing: boolean;
+        attributes: NodeArray<XJSAttribute>;
+    }
+
+    export interface XJSClosingElement extends Node {
+        name: XJSTagName;
+    }
+
+    export interface XJSAttribute extends PropertyDeclaration { }
+
+    export interface XJSText extends LiteralExpression { }
 
     export interface FileReference extends TextRange {
         filename: string;
