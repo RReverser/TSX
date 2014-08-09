@@ -419,6 +419,7 @@ module ts {
         Parameters,              // Parameters in parameter list
         TypeParameters,          // Type parameters in type parameter list
         TypeArguments,           // Type arguments in type argument list
+        XJSAttributes,           // JSX attributes in JSX opening element
         Count                    // Number of parsing contexts
     }
 
@@ -446,6 +447,7 @@ module ts {
             case ParsingContext.Parameters:             return Diagnostics.Parameter_declaration_expected;
             case ParsingContext.TypeParameters:         return Diagnostics.Type_parameter_declaration_expected;
             case ParsingContext.TypeArguments:          return Diagnostics.Type_argument_expected;
+            case ParsingContext.XJSAttributes:          return Diagnostics.JSX_attribute_was_expected;
         }
     };
 
@@ -915,6 +917,8 @@ module ts {
                     return isParameter();
                 case ParsingContext.TypeArguments:
                     return isType();
+                case ParsingContext.XJSAttributes:
+                    return isIdentifier();
             }
 
             Debug.fail("Non-exhaustive case in 'isListElement'.");
@@ -956,6 +960,8 @@ module ts {
                 case ParsingContext.TypeArguments:
                     // Tokens other than '>' are here for better error recovery
                     return token === SyntaxKind.GreaterThanToken || token === SyntaxKind.OpenParenToken;
+                case ParsingContext.XJSAttributes:
+                    return token === SyntaxKind.SlashToken || token === SyntaxKind.GreaterThanToken;
             }
         }
 
@@ -1991,7 +1997,7 @@ module ts {
                     }
                     return makeUnaryExpression(SyntaxKind.PrefixOperator, pos, operator, operand);
                 case SyntaxKind.LessThanToken:
-                    return parseTypeAssertion();
+                    return tryParseXJSElement() || parseTypeAssertion();
             }
 
             var primaryExpression = parsePrimaryExpression();
@@ -2022,6 +2028,75 @@ module ts {
             }
 
             return expr;
+        }
+
+        function tryParseXJSElement(): XJSElement {
+            return tryParse(() => {
+                var node = <XJSElement>createNode(SyntaxKind.XJSElement);
+                node.openingElement = parseXJSOpeningElement();
+                if (node.openingElement.selfClosing) {
+                    node.children = createMissingList<Node>();
+                } else {
+                    node.children = createMissingList<Node>();
+                    node.closingElement = parseXJSClosingElement();
+                }
+                return finishNode(node);
+            });
+        }
+
+        function parseXJSOpeningElement(): XJSOpeningElement {
+            var node = <XJSOpeningElement>createNode(SyntaxKind.XJSOpeningElement);
+            parseExpected(SyntaxKind.LessThanToken);
+            node.name = parseXJSTagName();
+            node.attributes = parseList(ParsingContext.XJSAttributes, /* checkForStrictMode */false, parseXJSAttribute);
+            node.selfClosing = parseOptional(SyntaxKind.SlashToken);
+            parseExpected(SyntaxKind.GreaterThanToken);
+            return finishNode(node);
+        }
+
+        function parseXJSAttribute(): XJSAttribute {
+            var node = <XJSAttribute>createNode(SyntaxKind.XJSAttribute);
+            node.name = parseXJSIdentifier();
+            if (parseOptional(SyntaxKind.EqualsToken)) {
+                node.initializer = token === SyntaxKind.OpenBraceToken ? parseXJSExpressionContainer() : parseStringLiteral();
+            }
+            return finishNode(node);
+        }
+
+        function parseXJSClosingElement(): XJSClosingElement {
+            var node = <XJSClosingElement>createNode(SyntaxKind.XJSClosingElement);
+            parseExpected(SyntaxKind.LessThanToken);
+            parseExpected(SyntaxKind.SlashToken);
+            node.name = parseXJSTagName();
+            parseExpected(SyntaxKind.GreaterThanToken);
+            return finishNode(node);
+        }
+
+
+        function parseXJSIdentifier(): XJSIdentifier {
+            // TODO: Add real parsing for dashes support
+            return parseIdentifier();
+        }
+
+        function parseXJSTagName(): XJSTagName {
+            var expr = <XJSTagName>parseXJSIdentifier();
+            while (parseOptional(SyntaxKind.DotToken)) {
+                var propertyAccess = <PropertyAccess>createNode(SyntaxKind.PropertyAccess, expr.pos);
+                propertyAccess.left = expr;
+                propertyAccess.right = parseIdentifierName();
+                expr = finishNode(propertyAccess);
+            }
+            return expr;
+        }
+
+        function parseXJSExpressionContainer(): XJSExpressionContainer {
+            var node = <XJSExpressionContainer>createNode(SyntaxKind.XJSExpressionContainer);
+            parseExpected(SyntaxKind.OpenBraceToken);
+            if (token !== SyntaxKind.CloseBraceToken) {
+                node.expression = parseExpression();
+            }
+            parseExpected(SyntaxKind.CloseBraceToken);
+            return finishNode(node);
         }
 
         function parseTypeAssertion(): TypeAssertion {

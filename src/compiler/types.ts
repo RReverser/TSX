@@ -205,7 +205,6 @@ module ts {
         XJSTextToken,
         XJSIdentifier,
         XJSMemberExpression,
-        XJSEmptyExpression,
         XJSExpressionContainer,
         XJSElement,
         XJSOpeningElement,
@@ -529,20 +528,20 @@ module ts {
 
     export interface XJSMemberExpression extends PropertyAccess, XJSTagName { }
 
-    export interface XJSEmptyExpression extends Expression { }
-
-    export interface XJSExpressionContainer extends Node { }
+    export interface XJSExpressionContainer extends Node {
+        expression?: Expression;
+    }
 
     export interface XJSElement extends Expression {
         openingElement: XJSOpeningElement;
-        closingElement?: XJSClosingElement;
         children: NodeArray<Node>;
+        closingElement?: XJSClosingElement;
     }
 
     export interface XJSOpeningElement extends Node {
         name: XJSTagName;
-        selfClosing: boolean;
         attributes: NodeArray<XJSAttribute>;
+        selfClosing: boolean;
     }
 
     export interface XJSClosingElement extends Node {
