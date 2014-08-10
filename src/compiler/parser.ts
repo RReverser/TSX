@@ -524,6 +524,7 @@ module ts {
         TypeArguments,           // Type arguments in type argument list
         TupleElementTypes,       // Element types in tuple element type list
         XJSAttributes,           // JSX attributes in JSX opening element
+        XJSContents,             // JSX inner contents
         Count                    // Number of parsing contexts
     }
 
@@ -553,6 +554,7 @@ module ts {
             case ParsingContext.TypeArguments:          return Diagnostics.Type_argument_expected;
             case ParsingContext.TupleElementTypes:      return Diagnostics.Type_expected;
             case ParsingContext.XJSAttributes:          return Diagnostics.JSX_attribute_was_expected;
+            case ParsingContext.XJSContents:            return Diagnostics.JSX_value_was_expected;
         }
     };
 
@@ -1025,6 +1027,8 @@ module ts {
                     return isType();
                 case ParsingContext.XJSAttributes:
                     return isIdentifier();
+                case ParsingContext.XJSContents:
+                    return token === SyntaxKind.StringLiteral || token === SyntaxKind.OpenBraceToken || token === SyntaxKind.LessThanToken;
             }
 
             Debug.fail("Non-exhaustive case in 'isListElement'.");
@@ -1068,7 +1072,10 @@ module ts {
                     // Tokens other than '>' are here for better error recovery
                     return token === SyntaxKind.GreaterThanToken || token === SyntaxKind.OpenParenToken;
                 case ParsingContext.XJSAttributes:
-                    return token === SyntaxKind.SlashToken || token === SyntaxKind.GreaterThanToken;
+                    // Tokens other than '/' and '>' are here for better error recovery
+                    return token !== SyntaxKind.Identifier;
+                case ParsingContext.XJSContents:
+                    return token === SyntaxKind.LessThanToken && lookAhead(() => nextToken() === SyntaxKind.SlashToken);
             }
         }
 
@@ -2118,7 +2125,7 @@ module ts {
                     }
                     return makeUnaryExpression(SyntaxKind.PrefixOperator, pos, operator, operand);
                 case SyntaxKind.LessThanToken:
-                    return tryParseXJSElement() || parseTypeAssertion();
+                    return tryParse(parseXJSElement) || parseTypeAssertion();
             }
 
             var primaryExpression = parsePrimaryExpression();
@@ -2151,18 +2158,16 @@ module ts {
             return expr;
         }
 
-        function tryParseXJSElement(): XJSElement {
-            return tryParse(() => {
-                var node = <XJSElement>createNode(SyntaxKind.XJSElement);
-                node.openingElement = parseXJSOpeningElement();
-                if (node.openingElement.selfClosing) {
-                    node.children = createMissingList<Node>();
-                } else {
-                    node.children = createMissingList<Node>();
-                    node.closingElement = parseXJSClosingElement();
-                }
-                return finishNode(node);
-            });
+        function parseXJSElement(): XJSElement {
+            var node = <XJSElement>createNode(SyntaxKind.XJSElement);
+            node.openingElement = parseXJSOpeningElement();
+            if (node.openingElement.selfClosing) {
+                node.children = createMissingList<Node>();
+            } else {
+                node.children = parseList(ParsingContext.XJSContents, /* checkForStrictMode */false, () => parseXJSValue(/* isAttrValue */false));
+                node.closingElement = parseXJSClosingElement();
+            }
+            return finishNode(node);
         }
 
         function parseXJSOpeningElement(): XJSOpeningElement {
@@ -2177,11 +2182,31 @@ module ts {
 
         function parseXJSAttribute(): XJSAttribute {
             var node = <XJSAttribute>createNode(SyntaxKind.XJSAttribute);
-            node.name = parseXJSIdentifier();
+            node.name = parseIdentifier();
             if (parseOptional(SyntaxKind.EqualsToken)) {
-                node.initializer = token === SyntaxKind.OpenBraceToken ? parseXJSExpressionContainer() : parseStringLiteral();
+                node.initializer = parseXJSValue(/* isAttrValue */true);
             }
             return finishNode(node);
+        }
+
+        function parseXJSValue(isAttrValue: boolean): Node {
+            switch (token) {
+                case SyntaxKind.StringLiteral:
+                    return parseStringLiteral();
+
+                case SyntaxKind.OpenBraceToken:
+                    var node = parseXJSExpressionContainer();
+                    if (isAttrValue && !node.expression) {
+                        error(Diagnostics.JSX_attribute_value_can_t_be_empty_expression);
+                    }
+                    return node;
+
+                case SyntaxKind.LessThanToken:
+                    return parseXJSElement();
+
+                default:
+                    error(Diagnostics.JSX_value_was_expected);
+            }
         }
 
         function parseXJSClosingElement(): XJSClosingElement {
@@ -2193,14 +2218,8 @@ module ts {
             return finishNode(node);
         }
 
-
-        function parseXJSIdentifier(): XJSIdentifier {
-            // TODO: Add real parsing for dashes support
-            return parseIdentifier();
-        }
-
         function parseXJSTagName(): XJSTagName {
-            var expr = <XJSTagName>parseXJSIdentifier();
+            var expr = <XJSTagName>parseIdentifier();
             while (parseOptional(SyntaxKind.DotToken)) {
                 var propertyAccess = <PropertyAccess>createNode(SyntaxKind.PropertyAccess, expr.pos);
                 propertyAccess.left = expr;

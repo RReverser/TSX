@@ -202,10 +202,6 @@ module ts {
         ImportDeclaration,
         ExportAssignment,
         // JSX
-        XJSIdentifierToken,
-        XJSTextToken,
-        XJSIdentifier,
-        XJSMemberExpression,
         XJSExpressionContainer,
         XJSElement,
         XJSOpeningElement,
@@ -527,17 +523,15 @@ module ts {
         exportName: Identifier;
     }
 
-    export interface XJSTagName extends Node { }
+    export interface XJSTagName extends Node {
+        // Identifier or PropertyAccess
+    }
 
-    export interface XJSIdentifier extends Identifier, XJSTagName { }
-
-    export interface XJSMemberExpression extends PropertyAccess, XJSTagName { }
-
-    export interface XJSExpressionContainer extends Node {
+    export interface XJSExpressionContainer extends Expression {
         expression?: Expression;
     }
 
-    export interface XJSElement extends Expression {
+    export interface XJSElement extends Node {
         openingElement: XJSOpeningElement;
         children: NodeArray<Node>;
         closingElement?: XJSClosingElement;
@@ -554,8 +548,6 @@ module ts {
     }
 
     export interface XJSAttribute extends PropertyDeclaration { }
-
-    export interface XJSText extends LiteralExpression { }
 
     export interface FileReference extends TextRange {
         filename: string;
