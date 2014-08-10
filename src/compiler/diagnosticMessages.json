@@ -1564,5 +1564,13 @@
     "JSX attribute was expected.": {
         "category": "Error",
         "code": 11001
+    },
+    "JSX value was expected.": {
+        "category": "Error",
+        "code": 11002
+    },
+    "JSX attribute value can't be empty expression.": {
+        "category": "Error",
+        "code": 11003
     }
 }
