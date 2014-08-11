@@ -1073,7 +1073,7 @@ module ts {
                     return token === SyntaxKind.GreaterThanToken || token === SyntaxKind.OpenParenToken;
                 case ParsingContext.XJSAttributes:
                     // Tokens other than '/' and '>' are here for better error recovery
-                    return token !== SyntaxKind.Identifier && token !== SyntaxKind.EqualsToken;
+                    return token < SyntaxKind.Identifier;
                 case ParsingContext.XJSContents:
                     return token === SyntaxKind.LessThanToken && lookAhead(() => (scanner.setInXJSContents(false), nextToken() === SyntaxKind.SlashToken));
             }
