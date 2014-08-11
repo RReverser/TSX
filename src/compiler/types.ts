@@ -531,9 +531,9 @@ module ts {
         expression?: Expression;
     }
 
-    export interface XJSElement extends Node {
+    export interface XJSElement extends Expression {
         openingElement: XJSOpeningElement;
-        children: NodeArray<Node>;
+        children: NodeArray<Expression>;
         closingElement?: XJSClosingElement;
     }
 

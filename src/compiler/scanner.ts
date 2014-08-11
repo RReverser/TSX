@@ -25,6 +25,8 @@ module ts {
         reScanGreaterToken(): SyntaxKind;
         reScanSlashToken(): SyntaxKind;
         scan(): SyntaxKind;
+        setInXJSContents(state: boolean): boolean;
+        setInXJSTag(state: boolean): boolean;
         setText(text: string): void;
         setTextPos(textPos: number): void;
         tryScan<T>(callback: () => T): T;
@@ -468,6 +470,8 @@ module ts {
         var token: number;
         var tokenValue: string;
         var precedingLineBreak: boolean;
+        var inXJSTag: boolean;
+        var inXJSContents: boolean;
 
         function error(message: DiagnosticMessage): void {
             if (onError) {
@@ -484,7 +488,8 @@ module ts {
         function isIdentifierPart(ch: number): boolean {
             return ch >= CharacterCodes.A && ch <= CharacterCodes.Z || ch >= CharacterCodes.a && ch <= CharacterCodes.z ||
                 ch >= CharacterCodes._0 && ch <= CharacterCodes._9 || ch === CharacterCodes.$ || ch === CharacterCodes._ ||
-                ch > CharacterCodes.maxAsciiCharacter && isUnicodeIdentifierPart(ch, languageVersion);
+                ch > CharacterCodes.maxAsciiCharacter && isUnicodeIdentifierPart(ch, languageVersion) ||
+                (inXJSTag && ch === CharacterCodes.minus);
         }
 
         function scanNumber(): number {
@@ -629,6 +634,35 @@ module ts {
             return result;
         }
 
+        function scanXJSText(stopChars: number[]): string {
+            var result = "";
+            var start = pos;
+            while (true) {
+                if (pos >= len) {
+                    result += text.substring(start, pos);
+                    error(Diagnostics.Unexpected_end_of_text);
+                    break;
+                }
+                var ch = text.charCodeAt(pos);
+                if (stopChars.indexOf(ch) !== -1) {
+                    result += text.substring(start, pos);
+                    break;
+                }
+                if (ch === CharacterCodes.carriageReturn) {
+                    pos++;
+                }
+                pos++;
+            }
+            return result;
+        }
+
+        function scanXJSString(): string {
+            var quote = text.charCodeAt(pos++);
+            var result = scanXJSText([quote]);
+            pos++;
+            return result;
+        }
+
         // Current character is known to be a backslash. Check for Unicode escape of the form '\uXXXX'
         // and return code point value if valid Unicode escape is found. Otherwise return -1.
         function peekUnicodeEscape(): number {
@@ -650,7 +684,7 @@ module ts {
                 if (isIdentifierPart(ch)) {
                     pos++;
                 }
-                else if (ch === CharacterCodes.backslash) {
+                else if (ch === CharacterCodes.backslash && !inXJSTag) {
                     ch = peekUnicodeEscape();
                     if (!(ch >= 0 && isIdentifierPart(ch))) {
                         break;
@@ -690,6 +724,10 @@ module ts {
                     return token = SyntaxKind.EndOfFileToken;
                 }
                 var ch = text.charCodeAt(pos);
+                if (inXJSContents && ch !== CharacterCodes.lessThan && ch !== CharacterCodes.openBrace && ch !== CharacterCodes.closeBrace) {
+                    tokenValue = scanXJSText([CharacterCodes.lessThan, CharacterCodes.openBrace]);
+                    return token = SyntaxKind.StringLiteral;
+                }
                 switch (ch) {
                     case CharacterCodes.lineFeed:
                     case CharacterCodes.carriageReturn:
@@ -710,7 +748,7 @@ module ts {
                         return pos++, token = SyntaxKind.ExclamationToken;
                     case CharacterCodes.doubleQuote:
                     case CharacterCodes.singleQuote:
-                        tokenValue = scanString();
+                        tokenValue = inXJSTag ? scanXJSString() : scanString();
                         return token = SyntaxKind.StringLiteral;
                     case CharacterCodes.percent:
                         if (text.charCodeAt(pos + 1) === CharacterCodes.equals) {
@@ -1004,6 +1042,18 @@ module ts {
             return token;
         }
 
+        function setInXJSContents(state: boolean): boolean {
+            var oldState = inXJSContents;
+            inXJSContents = state;
+            return oldState;
+        }
+
+        function setInXJSTag(state: boolean): boolean {
+            var oldState = inXJSTag;
+            inXJSTag = state;
+            return oldState;
+        }
+
         function tryScan<T>(callback: () => T): T {
             var savePos = pos;
             var saveStartPos = startPos;
@@ -1011,6 +1061,8 @@ module ts {
             var saveToken = token;
             var saveTokenValue = tokenValue;
             var savePrecedingLineBreak = precedingLineBreak;
+            var saveInXJSContents = inXJSContents;
+            var saveInXJSTag = inXJSTag;
             var result = callback();
             if (!result) {
                 pos = savePos;
@@ -1019,6 +1071,8 @@ module ts {
                 token = saveToken;
                 tokenValue = saveTokenValue;
                 precedingLineBreak = savePrecedingLineBreak;
+                inXJSContents = saveInXJSContents;
+                inXJSTag = saveInXJSTag;
             }
             return result;
         }
@@ -1035,6 +1089,7 @@ module ts {
             tokenPos = textPos;
             token = SyntaxKind.Unknown;
             precedingLineBreak = false;
+            inXJSTag = inXJSContents = false;
         }
 
         setText(text);
@@ -1053,6 +1108,8 @@ module ts {
             reScanGreaterToken: reScanGreaterToken,
             reScanSlashToken: reScanSlashToken,
             scan: scan,
+            setInXJSContents: setInXJSContents,
+            setInXJSTag: setInXJSTag,
             setText: setText,
             setTextPos: setTextPos,
             tryScan: tryScan
