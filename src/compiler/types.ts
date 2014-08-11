@@ -518,10 +518,6 @@ module ts {
         exportName: Identifier;
     }
 
-    export interface XJSTagName extends Node {
-        // Identifier or PropertyAccess
-    }
-
     export interface XJSExpressionContainer extends Expression {
         expression?: Expression;
     }
@@ -533,13 +529,13 @@ module ts {
     }
 
     export interface XJSOpeningElement extends Node {
-        name: XJSTagName;
+        name: EntityName;
         attributes: NodeArray<XJSAttribute>;
         selfClosing: boolean;
     }
 
     export interface XJSClosingElement extends Node {
-        name: XJSTagName;
+        name: EntityName;
     }
 
     export interface XJSAttribute extends PropertyDeclaration { }

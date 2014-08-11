@@ -905,7 +905,7 @@ module ts {
                             }
                             return pos += 2, token = SyntaxKind.EqualsEqualsToken;
                         }
-                        if (text.charCodeAt(pos + 1) === CharacterCodes.greaterThan) {
+                        if (!inXJSTag && text.charCodeAt(pos + 1) === CharacterCodes.greaterThan) {
                             return pos += 2, token = SyntaxKind.EqualsGreaterThanToken;
                         }
                         return pos++, token = SyntaxKind.EqualsToken;
