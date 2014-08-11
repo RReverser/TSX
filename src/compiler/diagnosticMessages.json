@@ -183,7 +183,7 @@
         "category": "Error",
         "code": 1066
     },
-    "Unexpected token. A constructor, method, accessor, or property was expected." : {
+    "Unexpected token. A constructor, method, accessor, or property was expected.": {
         "category": "Error",
         "code": 1068
     },
@@ -655,7 +655,7 @@
     "Neither type '{0}' nor type '{1}' is assignable to the other.": {
         "category": "Error",
         "code": 2352
-    }, 
+    },
     "Neither type '{0}' nor type '{1}' is assignable to the other:": {
         "category": "Error",
         "code": 2353
@@ -880,7 +880,7 @@
         "category": "Error",
         "code": 2408
     },
-    "Return type of constructor signature must be assignable to the instance type of the class":{
+    "Return type of constructor signature must be assignable to the instance type of the class": {
         "category": "Error",
         "code": 2409
     },
@@ -988,7 +988,7 @@
         "category": "Error",
         "code": 2435
     },
-    "Ambient external module declaration cannot specify relative module name.":{
+    "Ambient external module declaration cannot specify relative module name.": {
         "category": "Error",
         "code": 2436
     },
@@ -1592,5 +1592,9 @@
     "JSX attribute value can't be empty expression.": {
         "category": "Error",
         "code": 11003
+    },
+    "Expected closing tag for <{0} ...> but found </{1}>.": {
+        "category": "Error",
+        "code":  11004
     }
 }

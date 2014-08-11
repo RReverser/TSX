@@ -2215,6 +2215,11 @@ module ts {
                 node.children = parseList(ParsingContext.XJSContents, /* checkForStrictMode */false, () => parseXJSValue(/* isAttrValue */false));
                 scanner.setInXJSContents(wasInXJSContents);
                 node.closingElement = parseXJSClosingElement();
+                var openingName = entityNameToString(node.openingElement.name);
+                var closingName = entityNameToString(node.closingElement.name);
+                if (closingName && openingName !== closingName) {
+                    grammarErrorOnNode(node.closingElement, Diagnostics.Expected_closing_tag_for_0_but_found_Slash_1, openingName, closingName);
+                }
             }
             return finishNode(node);
         }
@@ -2272,6 +2277,15 @@ module ts {
                 grammarErrorOnNode(expr, Diagnostics.JSX_value_should_be_either_string_or_expression_wrapped_into_braces);
             }
             return expr;
+        }
+
+        function entityNameToString(entity: EntityName): string {
+            if ('text' in entity) {
+                return (<Identifier>entity).text;
+            } else if ('left' in entity && 'right' in entity) {
+                var qualifiedName = <QualifiedName>entity;
+                return entityNameToString(qualifiedName.left) + '.' + qualifiedName.right.text;
+            }
         }
 
         function parseXJSClosingElement(): XJSClosingElement {
