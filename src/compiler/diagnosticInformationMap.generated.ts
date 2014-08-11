@@ -394,5 +394,6 @@ module ts {
         JSX_attribute_was_expected: { code: 11001, category: DiagnosticCategory.Error, key: "JSX attribute was expected." },
         JSX_value_should_be_either_string_or_expression_wrapped_into_braces: { code: 11002, category: DiagnosticCategory.Error, key: "JSX value should be either string or expression wrapped into braces." },
         JSX_attribute_value_can_t_be_empty_expression: { code: 11003, category: DiagnosticCategory.Error, key: "JSX attribute value can't be empty expression." },
+        Expected_closing_tag_for_0_but_found_Slash_1: { code: 11004, category: DiagnosticCategory.Error, key: "Expected closing tag for <{0} ...> but found </{1}>." },
     };
 }
