@@ -1585,7 +1585,7 @@
         "category": "Error",
         "code": 11001
     },
-    "JSX value was expected.": {
+    "JSX value should be either string or expression wrapped into braces.": {
         "category": "Error",
         "code": 11002
     },

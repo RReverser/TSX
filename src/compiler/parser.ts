@@ -554,7 +554,7 @@ module ts {
             case ParsingContext.TypeArguments:          return Diagnostics.Type_argument_expected;
             case ParsingContext.TupleElementTypes:      return Diagnostics.Type_expected;
             case ParsingContext.XJSAttributes:          return Diagnostics.JSX_attribute_was_expected;
-            case ParsingContext.XJSContents:            return Diagnostics.JSX_value_was_expected;
+            case ParsingContext.XJSContents:            return Diagnostics.JSX_value_should_be_either_string_or_expression_wrapped_into_braces;
         }
     };
 
@@ -1026,7 +1026,7 @@ module ts {
                 case ParsingContext.TupleElementTypes:
                     return isType();
                 case ParsingContext.XJSAttributes:
-                    return isIdentifier();
+                    return token >= SyntaxKind.Identifier || token === SyntaxKind.EqualsToken;
                 case ParsingContext.XJSContents:
                     return token === SyntaxKind.StringLiteral || token === SyntaxKind.OpenBraceToken || token === SyntaxKind.LessThanToken;
             }
@@ -1073,12 +1073,9 @@ module ts {
                     return token === SyntaxKind.GreaterThanToken || token === SyntaxKind.OpenParenToken;
                 case ParsingContext.XJSAttributes:
                     // Tokens other than '/' and '>' are here for better error recovery
-                    return token !== SyntaxKind.Identifier;
+                    return token !== SyntaxKind.Identifier && token !== SyntaxKind.EqualsToken;
                 case ParsingContext.XJSContents:
-                    return token === SyntaxKind.LessThanToken && lookAhead(() => {
-                        scanner.setInXJSContents(false);
-                        return nextToken() === SyntaxKind.SlashToken;
-                    });
+                    return token === SyntaxKind.LessThanToken && lookAhead(() => (scanner.setInXJSContents(false), nextToken() === SyntaxKind.SlashToken));
             }
         }
 
@@ -2128,7 +2125,16 @@ module ts {
                     }
                     return makeUnaryExpression(SyntaxKind.PrefixOperator, pos, operator, operand);
                 case SyntaxKind.LessThanToken:
-                    return tryParse(parseXJSElement) || parseTypeAssertion();
+                    switch (isXJSElement()) {
+                        case Tristate.True:
+                            return parseXJSElement();
+
+                        case Tristate.Unknown:
+                            return tryParse(parseXJSElement) || parseTypeAssertion();
+
+                        case Tristate.False:
+                            return parseTypeAssertion();
+                    }
             }
 
             var primaryExpression = parsePrimaryExpression();
@@ -2161,6 +2167,44 @@ module ts {
             return expr;
         }
 
+        // Distingushing JSX tags from type cast operators is pretty tricky, especially when we have error
+        // recovery option and want to be as close to what user wanted to write as possible, so this check
+        // contains bunch of complex nested conditions.
+
+        function isXJSElement(): Tristate {
+            if (token !== SyntaxKind.LessThanToken) {
+                return Tristate.False;
+            }
+            return lookAhead(() => {
+                scanner.setInXJSTag(true);
+                if (nextToken() !== SyntaxKind.Identifier) {
+                    // Not an identifier (like '<1')
+                    return Tristate.False;
+                }
+                nextToken();
+                if (isIdentifier()) {
+                    if (nextToken() === SyntaxKind.EqualsToken || token === SyntaxKind.GreaterThanToken || token === SyntaxKind.StringLiteral ||
+                        // Treat '<foo bar(=|>|baz|"123"|123|{|/>)' as JSX tag.
+                        token === SyntaxKind.OpenBraceToken || token === SyntaxKind.NumericLiteral || token >= SyntaxKind.Identifier ||
+                        token === SyntaxKind.SlashToken && nextToken() === SyntaxKind.GreaterThanToken) {
+                        return Tristate.True;
+                    } else {
+                        // Treat everything else (i.e. '<foo bar-baz') as type cast
+                        return Tristate.False;
+                    }
+                } else if (token === SyntaxKind.SlashToken || token === SyntaxKind.EqualsToken) {
+                    // Treat '<foo [/=]' as JSX tag
+                    return Tristate.True;
+                } else if (token === SyntaxKind.GreaterThanToken) {
+                    // Treat '<foo>' either as JSX tag or, if it doesn't parse, as cast operator
+                    return Tristate.Unknown;
+                } else {
+                    // Treat everything else (i.e. '<foo -bar') as type cast
+                    return Tristate.False;
+                }
+            });
+        }
+
         function parseXJSElement(): XJSElement {
             var node = <XJSElement>createNode(SyntaxKind.XJSElement);
             var wasInXJSContents = scanner.setInXJSContents(false);
@@ -2180,7 +2224,7 @@ module ts {
             var wasInXJSContents = scanner.setInXJSContents(false);
             var wasInXJSTag = scanner.setInXJSTag(true);
             parseExpected(SyntaxKind.LessThanToken);
-            node.name = parseXJSTagName();
+            node.name = parseEntityName(false);
             node.attributes = parseList(ParsingContext.XJSAttributes, /* checkForStrictMode */false, parseXJSAttribute);
             node.selfClosing = parseOptional(SyntaxKind.SlashToken);
             if (node.selfClosing) {
@@ -2190,13 +2234,20 @@ module ts {
                 scanner.setInXJSContents(true);
                 scanner.setInXJSTag(false);
             }
-            parseExpected(SyntaxKind.GreaterThanToken);
+            if (token === SyntaxKind.GreaterThanToken) {
+                nextToken();
+            } else if (!node.selfClosing) {
+                scanner.setTextPos(scanner.getStartPos());
+                scanner.setInXJSContents(true);
+                error(Diagnostics._0_expected, tokenToString(SyntaxKind.GreaterThanToken));
+                nextToken();
+            }
             return finishNode(node);
         }
 
         function parseXJSAttribute(): XJSAttribute {
             var node = <XJSAttribute>createNode(SyntaxKind.XJSAttribute);
-            node.name = parseIdentifier();
+            node.name = parseIdentifierName();
             if (parseOptional(SyntaxKind.EqualsToken)) {
                 node.initializer = parseXJSValue(/* isAttrValue */true);
             }
@@ -2205,16 +2256,22 @@ module ts {
 
         function parseXJSValue(isAttrValue: boolean): Expression {
             if (token === SyntaxKind.OpenBraceToken) {
-                var node = parseXJSExpressionContainer();
-                if (isAttrValue && !node.expression) {
-                    node.expression = createMissingNode();
+                var container = parseXJSExpressionContainer();
+                if (isAttrValue && !container.expression) {
+                    grammarErrorOnNode(container, Diagnostics.JSX_attribute_value_can_t_be_empty_expression);
                 }
+                return container;
+            }
+            if (token >= SyntaxKind.Identifier || token === SyntaxKind.GreaterThanToken) {
+                var node = createMissingNode();
+                grammarErrorOnNode(node, Diagnostics.Expression_expected);
                 return node;
             }
-            if (token !== SyntaxKind.StringLiteral && token !== SyntaxKind.LessThanToken) {
-                error(Diagnostics.JSX_value_was_expected);
+            var expr = parseUnaryExpression();
+            if (expr.kind !== SyntaxKind.StringLiteral && expr.kind !== SyntaxKind.XJSElement) {
+                grammarErrorOnNode(expr, Diagnostics.JSX_value_should_be_either_string_or_expression_wrapped_into_braces);
             }
-            return parseUnaryExpression();
+            return expr;
         }
 
         function parseXJSClosingElement(): XJSClosingElement {
@@ -2223,22 +2280,11 @@ module ts {
             var wasInXJSTag = scanner.setInXJSTag(true);
             parseExpected(SyntaxKind.LessThanToken);
             parseExpected(SyntaxKind.SlashToken);
-            node.name = parseXJSTagName();
+            node.name = parseEntityName(false);
             scanner.setInXJSContents(wasInXJSContents);
             scanner.setInXJSTag(wasInXJSTag);
             parseExpected(SyntaxKind.GreaterThanToken);
             return finishNode(node);
-        }
-
-        function parseXJSTagName(): XJSTagName {
-            var expr = <XJSTagName>parseIdentifier();
-            while (parseOptional(SyntaxKind.DotToken)) {
-                var propertyAccess = <PropertyAccess>createNode(SyntaxKind.PropertyAccess, expr.pos);
-                propertyAccess.left = expr;
-                propertyAccess.right = parseIdentifierName();
-                expr = finishNode(propertyAccess);
-            }
-            return expr;
         }
 
         function parseXJSExpressionContainer(): XJSExpressionContainer {

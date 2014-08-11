@@ -397,7 +397,7 @@ module ts {
         Function_implicitly_has_return_type_any_because_it_does_not_have_a_return_type_annotation_and_is_referenced_directly_or_indirectly_in_one_of_its_return_expressions: { code: 7024, category: DiagnosticCategory.Error, key: "Function implicitly has return type 'any' because it does not have a return type annotation and is referenced directly or indirectly in one of its return expressions." },
         You_cannot_rename_this_element: { code: 8000, category: DiagnosticCategory.Error, key: "You cannot rename this element." },
         JSX_attribute_was_expected: { code: 11001, category: DiagnosticCategory.Error, key: "JSX attribute was expected." },
-        JSX_value_was_expected: { code: 11002, category: DiagnosticCategory.Error, key: "JSX value was expected." },
+        JSX_value_should_be_either_string_or_expression_wrapped_into_braces: { code: 11002, category: DiagnosticCategory.Error, key: "JSX value should be either string or expression wrapped into braces." },
         JSX_attribute_value_can_t_be_empty_expression: { code: 11003, category: DiagnosticCategory.Error, key: "JSX attribute value can't be empty expression." },
     };
 }
