@@ -22,6 +22,7 @@ module ts {
         hasPrecedingLineBreak(): boolean;
         isIdentifier(): boolean;
         isReservedWord(): boolean;
+        isMaybeTag(): boolean;
         reScanGreaterToken(): SyntaxKind;
         reScanSlashToken(): SyntaxKind;
         scan(): SyntaxKind;
@@ -462,6 +463,34 @@ module ts {
             ch > CharacterCodes.maxAsciiCharacter && isUnicodeIdentifierPart(ch, languageVersion);
     }
 
+    // from https://github.com/jrburke/requirejs
+    var reComments = /(\/\*([\s\S]*?)\*\/|([^:]|^)\/\/(.*)$)/mg;
+
+    function createUnicodeCharEscape(code: number): string {
+        var str = code.toString(16);
+        while (str.length < 4) {
+            str = "0" + str;
+        }
+        return "\\u" + str;
+    }
+
+    function createUnicodeCharRegexSource(codes: number[], alsoAllow: string): string {
+        return "[" + codes.map(createUnicodeCharEscape).join("") + alsoAllow + "]";
+    }
+
+    function createClosingTagRegex(unicodeStartCodes: number[], unicodePartCodes: number[]): RegExp {
+        return new RegExp(
+            "<\s*\/\s*(" +
+            createUnicodeCharRegexSource(unicodeStartCodes, "A-Za-z$_") +
+            createUnicodeCharRegexSource(unicodePartCodes, "A-Za-z0-9$_-") +
+            "*)(?!\/)",
+            "g"
+        );
+    }
+
+    var reClosingTagsES3 = createClosingTagRegex(unicodeES3IdentifierStart, unicodeES3IdentifierPart);
+    var reClosingTagsES5 = createClosingTagRegex(unicodeES5IdentifierStart, unicodeES5IdentifierPart);
+
     export function createScanner(languageVersion: ScriptTarget, text?: string, onError?: ErrorCallback, onComment?: CommentCallback): Scanner {
         var pos: number;       // Current position (end position of text of current token)
         var len: number;       // Length of text
@@ -472,6 +501,18 @@ module ts {
         var precedingLineBreak: boolean;
         var inXJSTag: boolean;
         var inXJSContents: boolean;
+        var maybeTags: { [name: string]: boolean } = {};
+
+        // Populating maybeTags with found closing tags.
+        function findMaybeTags(): void {
+            var code = text.replace(reComments, "");
+            var reClosingTags = languageVersion === ScriptTarget.ES3 ? reClosingTagsES3 : reClosingTagsES5;
+            var match: RegExpExecArray;
+            maybeTags = {};
+            while (match = reClosingTags.exec(code)) {
+                maybeTags[match[1]] = true;
+            }
+        }
 
         function error(message: DiagnosticMessage): void {
             if (onError) {
@@ -1080,6 +1121,7 @@ module ts {
         function setText(newText: string) {
             text = newText || "";
             len = text.length;
+            findMaybeTags();
             setTextPos(0);
         }
 
@@ -1094,7 +1136,6 @@ module ts {
 
         setText(text);
 
-
         return {
             getStartPos: () => startPos,
             getTextPos: () => pos,
@@ -1105,6 +1146,7 @@ module ts {
             hasPrecedingLineBreak: () => precedingLineBreak,
             isIdentifier: () => token === SyntaxKind.Identifier || token > SyntaxKind.LastReservedWord,
             isReservedWord: () => token >= SyntaxKind.FirstReservedWord && token <= SyntaxKind.LastReservedWord,
+            isMaybeTag: () => maybeTags[tokenValue] === true,
             reScanGreaterToken: reScanGreaterToken,
             reScanSlashToken: reScanSlashToken,
             scan: scan,
