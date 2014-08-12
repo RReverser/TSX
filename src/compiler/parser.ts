@@ -826,7 +826,7 @@ module ts {
             return token = scanner.reScanSlashToken();
         }
 
-        function lookAheadHelper<T>(callback: () => T, alwaysResetState: boolean): T {
+        function lookAheadHelper<T>(callback: () => T, alwaysResetState: boolean, allowErrors?: boolean): T {
             // Keep track of the state we'll need to rollback to if lookahead fails (or if the 
             // caller asked us to always reset our state).
             var saveToken = token;
@@ -844,7 +844,7 @@ module ts {
             // If we switched from 1 to -1 then a parse error occurred during the callback.
             // If that's the case, then we want to act as if we never got any result at all.
             Debug.assert(lookAheadMode === LookAheadMode.Error || lookAheadMode === LookAheadMode.NoErrorYet);
-            if (lookAheadMode === LookAheadMode.Error) {
+            if (lookAheadMode === LookAheadMode.Error && !allowErrors) {
                 result = undefined;
             }
 
@@ -875,8 +875,8 @@ module ts {
             return result;
         }
 
-        function tryParse<T>(callback: () => T): T {
-            return scanner.tryScan(() => lookAheadHelper(callback, /*alwaysResetState:*/ false));
+        function tryParse<T>(callback: () => T, allowErrors?: boolean): T {
+            return scanner.tryScan(() => lookAheadHelper(callback, /*alwaysResetState:*/ false, /*allowErrors:*/ allowErrors));
         }
 
         function isIdentifier(): boolean {
@@ -1073,7 +1073,7 @@ module ts {
                     return token === SyntaxKind.GreaterThanToken || token === SyntaxKind.OpenParenToken;
                 case ParsingContext.XJSAttributes:
                     // Tokens other than '/' and '>' are here for better error recovery
-                    return token < SyntaxKind.Identifier;
+                    return token < SyntaxKind.Identifier && token !== SyntaxKind.EqualsToken;
                 case ParsingContext.XJSContents:
                     return token === SyntaxKind.LessThanToken && lookAhead(() => (scanner.setInXJSContents(false), nextToken() === SyntaxKind.SlashToken));
             }
@@ -2130,12 +2130,12 @@ module ts {
                             return parseXJSElement();
 
                         case Tristate.Unknown:
-                            return scanner.tryScan(() => {
+                            return tryParse(() => {
                                 var node = parseXJSElement();
-                                if (node.closingElement.name) {
+                                if (node.openingElement.selfClosing || node.closingElement.name.kind !== SyntaxKind.Missing) {
                                     return node;
                                 }
-                            }) || parseTypeAssertion();
+                            }, true) || parseTypeAssertion();
 
                         case Tristate.False:
                             return parseTypeAssertion();
@@ -2218,9 +2218,7 @@ module ts {
                             if (token < SyntaxKind.OpenParenToken || token === SyntaxKind.EqualsToken || token === SyntaxKind.GreaterThanToken || token >= SyntaxKind.Identifier) {
                                 // '<Foo bar 1...'
                                 // '<Foo bar "a"...'
-                                // '<Foo bar /x/...'
                                 // '<Foo bar {...'
-                                // '<Foo bar }...'
                                 return Tristate.True;
                             } else {
                                 // '<Foo bar+'
@@ -2268,13 +2266,15 @@ module ts {
                 scanner.setInXJSContents(true);
                 scanner.setInXJSTag(false);
             }
-            if (token === SyntaxKind.GreaterThanToken) {
+            if (!node.selfClosing) {
+                if (token !== SyntaxKind.GreaterThanToken) {
+                    scanner.setTextPos(scanner.getStartPos());
+                    scanner.setInXJSContents(true);
+                    error(Diagnostics._0_expected, tokenToString(SyntaxKind.GreaterThanToken));
+                }
                 nextToken();
-            } else if (!node.selfClosing) {
-                scanner.setTextPos(scanner.getStartPos());
-                scanner.setInXJSContents(true);
-                error(Diagnostics._0_expected, tokenToString(SyntaxKind.GreaterThanToken));
-                nextToken();
+            } else {
+                parseExpected(SyntaxKind.GreaterThanToken);
             }
             return finishNode(node);
         }
@@ -2314,6 +2314,8 @@ module ts {
             } else if ('left' in entity && 'right' in entity) {
                 var qualifiedName = <QualifiedName>entity;
                 return entityNameToString(qualifiedName.left) + '.' + qualifiedName.right.text;
+            } else {
+                return "(Missing)";
             }
         }
 
