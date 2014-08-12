@@ -482,8 +482,8 @@ module ts {
         return new RegExp(
             "<\s*\/\s*(" +
             createUnicodeCharRegexSource(unicodeStartCodes, "A-Za-z$_") +
-            createUnicodeCharRegexSource(unicodePartCodes, "A-Za-z0-9$_-") +
-            "*)(?!\/)",
+            createUnicodeCharRegexSource(unicodePartCodes, "A-Za-z0-9$_\\-\\.") +
+            "*)?\s*(>|$)",
             "g"
         );
     }
@@ -501,17 +501,20 @@ module ts {
         var precedingLineBreak: boolean;
         var inXJSTag: boolean;
         var inXJSContents: boolean;
-        var maybeTags: { [name: string]: boolean } = {};
+        var reMaybeTag: RegExp;
 
         // Populating maybeTags with found closing tags.
         function findMaybeTags(): void {
-            var code = text.replace(reComments, "");
-            var reClosingTags = languageVersion === ScriptTarget.ES3 ? reClosingTagsES3 : reClosingTagsES5;
-            var match: RegExpExecArray;
-            maybeTags = {};
+            var code = text.replace(reComments, ""),
+                reClosingTags = languageVersion === ScriptTarget.ES3 ? reClosingTagsES3 : reClosingTagsES5,
+                match: RegExpExecArray,
+                maybeTags: { [name: string]: boolean } = {};
+
             while (match = reClosingTags.exec(code)) {
-                maybeTags[match[1]] = true;
+                maybeTags[(match[1] || "") + (match[2] ? "$" : "")] = true;
             }
+
+            reMaybeTag = new RegExp("^(" + Object.keys(maybeTags).map(name => name.replace(".", "\\.")).join("|") + ")");
         }
 
         function error(message: DiagnosticMessage): void {
@@ -1146,7 +1149,7 @@ module ts {
             hasPrecedingLineBreak: () => precedingLineBreak,
             isIdentifier: () => token === SyntaxKind.Identifier || token > SyntaxKind.LastReservedWord,
             isReservedWord: () => token >= SyntaxKind.FirstReservedWord && token <= SyntaxKind.LastReservedWord,
-            isMaybeTag: () => maybeTags[tokenValue] === true,
+            isMaybeTag: () => reMaybeTag.test(tokenValue),
             reScanGreaterToken: reScanGreaterToken,
             reScanSlashToken: reScanSlashToken,
             scan: scan,
