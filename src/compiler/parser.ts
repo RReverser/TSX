@@ -2130,7 +2130,12 @@ module ts {
                             return parseXJSElement();
 
                         case Tristate.Unknown:
-                            return tryParse(parseXJSElement) || parseTypeAssertion();
+                            return scanner.tryScan(() => {
+                                var node = parseXJSElement();
+                                if (node.closingElement.name) {
+                                    return node;
+                                }
+                            }) || parseTypeAssertion();
 
                         case Tristate.False:
                             return parseTypeAssertion();
@@ -2172,35 +2177,59 @@ module ts {
         // contains bunch of complex nested conditions.
 
         function isXJSElement(): Tristate {
+            // Not '<...'
             if (token !== SyntaxKind.LessThanToken) {
                 return Tristate.False;
             }
             return lookAhead(() => {
+                scanner.setInXJSContents(false);
                 scanner.setInXJSTag(true);
                 if (nextToken() !== SyntaxKind.Identifier) {
-                    // Not an identifier (like '<1')
+                    // Not '<Foo...'
                     return Tristate.False;
                 }
-                nextToken();
-                if (isIdentifier()) {
-                    if (nextToken() === SyntaxKind.EqualsToken || token === SyntaxKind.GreaterThanToken || token === SyntaxKind.StringLiteral ||
-                        // Treat '<foo bar(=|>|baz|"123"|123|{|/>)' as JSX tag.
-                        token === SyntaxKind.OpenBraceToken || token === SyntaxKind.NumericLiteral || token >= SyntaxKind.Identifier ||
-                        token === SyntaxKind.SlashToken && nextToken() === SyntaxKind.GreaterThanToken) {
+                var isMaybeTag = scanner.isMaybeTag();
+                switch (nextToken()) {
+                    case SyntaxKind.DotToken: // '<Foo.Bar'
+                    case SyntaxKind.GreaterThanToken: // '<Foo>...'
+                        if (isMaybeTag) {
+                            // '<Foo>...</Foo'
+                            return Tristate.Unknown;
+                        } else
+                        if (nextToken() === SyntaxKind.LessThanToken || token === SyntaxKind.OpenBraceToken) {
+                            // '<Foo><...', '<Foo>{...'
+                            return Tristate.True;
+                        } else {
+                            return Tristate.False;
+                        }
+
+                    case SyntaxKind.EqualsToken: // '<Foo =...'
+                    case SyntaxKind.SlashToken: // '<Foo /...'
                         return Tristate.True;
-                    } else {
-                        // Treat everything else (i.e. '<foo bar-baz') as type cast
-                        return Tristate.False;
-                    }
-                } else if (token === SyntaxKind.SlashToken || token === SyntaxKind.EqualsToken) {
-                    // Treat '<foo [/=]' as JSX tag
-                    return Tristate.True;
-                } else if (token === SyntaxKind.GreaterThanToken) {
-                    // Treat '<foo>' either as JSX tag or, if it doesn't parse, as cast operator
-                    return Tristate.Unknown;
-                } else {
-                    // Treat everything else (i.e. '<foo -bar') as type cast
-                    return Tristate.False;
+
+                    default:
+                        if (isIdentifier()) {
+                            // '<Foo bar...'
+                            nextToken();
+                            if (token === SyntaxKind.EndOfFileToken) {
+                                // '<Foo bar'
+                                return Tristate.False;
+                            } else
+                            if (token < SyntaxKind.OpenParenToken || token === SyntaxKind.EqualsToken || token === SyntaxKind.GreaterThanToken || token >= SyntaxKind.Identifier) {
+                                // '<Foo bar 1...'
+                                // '<Foo bar "a"...'
+                                // '<Foo bar /x/...'
+                                // '<Foo bar {...'
+                                // '<Foo bar }...'
+                                return Tristate.True;
+                            } else {
+                                // '<Foo bar+'
+                                return Tristate.Unknown;
+                            }
+                        } else {
+                            // '<Foo<', '<Foo!'
+                            return isMaybeTag ? Tristate.Unknown : Tristate.False;
+                        }
                 }
             });
         }
@@ -2217,7 +2246,7 @@ module ts {
                 node.closingElement = parseXJSClosingElement();
                 var openingName = entityNameToString(node.openingElement.name);
                 var closingName = entityNameToString(node.closingElement.name);
-                if (closingName && openingName !== closingName) {
+                if (openingName !== closingName) {
                     grammarErrorOnNode(node.closingElement, Diagnostics.Expected_closing_tag_for_0_but_found_Slash_1, openingName, closingName);
                 }
             }
