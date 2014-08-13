@@ -1643,7 +1643,7 @@ module ts {
             }
 
             var declarations = symbol.getDeclarations();
-            var firstDeclaration = [0];
+
             return {
                 name: displayName,
                 kind: getSymbolKind(symbol),
