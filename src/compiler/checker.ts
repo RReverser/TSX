@@ -29,6 +29,34 @@ module ts {
     /// NOTE: checks that somehow affects decisions being made during typechecking should be executed in both cases.
     export function createTypeChecker(program: Program, fullTypeCheck: boolean): TypeChecker {
 
+        var checker: TypeChecker = {
+            getProgram: () => program,
+            getDiagnostics: getDiagnostics,
+            getGlobalDiagnostics: getGlobalDiagnostics,
+            getNodeCount: () => sum(program.getSourceFiles(), "nodeCount"),
+            getIdentifierCount: () => sum(program.getSourceFiles(), "identifierCount"),
+            getSymbolCount: () => sum(program.getSourceFiles(), "symbolCount"),
+            getTypeCount: () => typeCount,
+            checkProgram: checkProgram,
+            emitFiles: invokeEmitter,
+            getSymbolOfNode: getSymbolOfNode,
+            getParentOfSymbol: getParentOfSymbol,
+            getTypeOfSymbol: getTypeOfSymbol,
+            getDeclaredTypeOfSymbol: getDeclaredTypeOfSymbol,
+            getPropertiesOfType: getPropertiesOfType,
+            getPropertyOfType: getPropertyOfType,
+            getSignaturesOfType: getSignaturesOfType,
+            getIndexTypeOfType: getIndexTypeOfType,
+            getReturnTypeOfSignature: getReturnTypeOfSignature,
+            resolveEntityName: resolveEntityName,
+            getSymbolsInScope: getSymbolsInScope,
+            getSymbolInfo: getSymbolInfo,
+            getTypeOfExpression: getTypeOfExpression,
+            typeToString: typeToString,
+            symbolToString: symbolToString,
+            getAugmentedPropertiesOfApparentType: getAugmentedPropertiesOfApparentType
+        };
+
         var Symbol = objectAllocator.getSymbolConstructor();
         var Type = objectAllocator.getTypeConstructor();
         var Signature = objectAllocator.getSignatureConstructor();
