@@ -2177,56 +2177,32 @@ module ts {
         // contains bunch of complex nested conditions.
 
         function isXJSElement(): Tristate {
-            // Not '<...'
-            if (token !== SyntaxKind.LessThanToken) {
-                return Tristate.False;
-            }
             return lookAhead(() => {
-                scanner.setInXJSContents(false);
-                scanner.setInXJSTag(true);
-                if (nextToken() !== SyntaxKind.Identifier) {
-                    // Not '<Foo...'
-                    return Tristate.False;
-                }
-                var isMaybeTag = scanner.isMaybeTag();
-                switch (nextToken()) {
-                    case SyntaxKind.DotToken: // '<Foo.Bar'
-                    case SyntaxKind.GreaterThanToken: // '<Foo>...'
-                        if (isMaybeTag) {
-                            // '<Foo>...</Foo'
-                            return Tristate.Unknown;
-                        } else
-                        if (nextToken() === SyntaxKind.LessThanToken || token === SyntaxKind.OpenBraceToken) {
-                            // '<Foo><...', '<Foo>{...'
-                            return Tristate.True;
-                        } else {
-                            return Tristate.False;
-                        }
-
-                    case SyntaxKind.EqualsToken: // '<Foo =...'
-                    case SyntaxKind.SlashToken: // '<Foo /...'
-                        return Tristate.True;
-
+                parseExpected(SyntaxKind.LessThanToken);
+                switch (token) {
+                    case SyntaxKind.AnyKeyword:
+                    case SyntaxKind.StringKeyword:
+                    case SyntaxKind.NumberKeyword:
+                    case SyntaxKind.BooleanKeyword:
+                    case SyntaxKind.VoidKeyword:
+                    case SyntaxKind.TypeOfKeyword:
+                    case SyntaxKind.OpenBraceToken:
+                    case SyntaxKind.OpenParenToken:
+                    case SyntaxKind.LessThanToken:
+                    case SyntaxKind.NewKeyword:
+                        return Tristate.False;
                     default:
                         if (isIdentifier()) {
-                            // '<Foo bar...'
-                            nextToken();
-                            if (token === SyntaxKind.EndOfFileToken) {
-                                // '<Foo bar'
-                                return Tristate.False;
-                            } else
-                            if (token < SyntaxKind.OpenParenToken || token === SyntaxKind.EqualsToken || token === SyntaxKind.GreaterThanToken || token >= SyntaxKind.Identifier) {
-                                // '<Foo bar 1...'
-                                // '<Foo bar "a"...'
-                                // '<Foo bar {...'
+                            var isMaybeTag = scanner.isMaybeTag();
+                            if (nextToken() === SyntaxKind.SlashToken || token >= SyntaxKind.Identifier) {
                                 return Tristate.True;
+                            } else if (token === SyntaxKind.GreaterThanToken) {
+                                return isMaybeTag ? Tristate.Unknown : Tristate.False;
                             } else {
-                                // '<Foo bar+'
-                                return Tristate.Unknown;
+                                return Tristate.False;
                             }
                         } else {
-                            // '<Foo<', '<Foo!'
-                            return isMaybeTag ? Tristate.Unknown : Tristate.False;
+                            return Tristate.False;
                         }
                 }
             });
@@ -2323,9 +2299,11 @@ module ts {
             var node = <XJSClosingElement>createNode(SyntaxKind.XJSClosingElement);
             var wasInXJSContents = scanner.setInXJSContents(false);
             var wasInXJSTag = scanner.setInXJSTag(true);
-            parseExpected(SyntaxKind.LessThanToken);
-            parseExpected(SyntaxKind.SlashToken);
-            node.name = parseEntityName(false);
+            if (parseExpected(SyntaxKind.LessThanToken) || parseExpected(SyntaxKind.SlashToken)) {
+                node.name = parseEntityName(false);
+            } else {
+                node.name = createMissingNode();
+            }
             scanner.setInXJSContents(wasInXJSContents);
             scanner.setInXJSTag(wasInXJSTag);
             parseExpected(SyntaxKind.GreaterThanToken);
