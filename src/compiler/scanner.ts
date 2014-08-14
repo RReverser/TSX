@@ -483,7 +483,7 @@ module ts {
             "<\s*\/\s*(" +
             createUnicodeCharRegexSource(unicodeStartCodes, "A-Za-z$_") +
             createUnicodeCharRegexSource(unicodePartCodes, "A-Za-z0-9$_\\-\\.") +
-            "*)?\s*(>|$)",
+            "*)\s*(>|$)",
             "g"
         );
     }
@@ -511,7 +511,7 @@ module ts {
                 maybeTags: { [name: string]: boolean } = {};
 
             while (match = reClosingTags.exec(code)) {
-                maybeTags[(match[1] || "") + (match[2] ? "$" : "")] = true;
+                maybeTags[match[1] + (match[2] ? "$" : "")] = true;
             }
 
             reMaybeTag = new RegExp("^(" + Object.keys(maybeTags).map(name => name.replace(".", "\\.")).join("|") + ")");
