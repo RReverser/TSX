@@ -135,8 +135,9 @@ var compilerFilename = "tsc.js";
     */
 function compileFile(outFile, sources, prereqs, prefixes, useBuiltCompiler, noOutFile) {
     file(outFile, prereqs, function() {
+    	useBuiltCompiler = false; // TODO: remove when compiler is fixed
         var dir = useBuiltCompiler ? builtLocalDirectory : LKGDirectory;
-        var options = "-removeComments --module commonjs -noImplicitAny "; //" -propagateEnumConstants "
+        var options = "--removeComments --module commonjs --noImplicitAny "; //" -propagateEnumConstants "
         
         var cmd = host + " " + dir + compilerFilename + " " + options + " ";
         if (useDebugMode) {
@@ -144,7 +145,7 @@ function compileFile(outFile, sources, prereqs, prefixes, useBuiltCompiler, noOu
         }
         cmd = cmd + sources.join(" ") + (!noOutFile ? " -out " + outFile : "");
         if (useDebugMode) {
-            cmd = cmd + " -sourcemap -mapRoot file:///" + path.resolve(path.dirname(outFile));
+            cmd = cmd + " -sourceMap --declaration";
         }
         console.log(cmd + "\n");
         var ex = jake.createExec([cmd]);
@@ -163,9 +164,10 @@ function compileFile(outFile, sources, prereqs, prefixes, useBuiltCompiler, noOu
             }
             complete();
         });
-        ex.addListener("error", function() {
-            fs.unlinkSync(outFile);
-            console.log("Compilation of " + outFile + " unsuccessful");
+        ex.addListener("error", function(err) {
+            fs.unlink(outFile, function() {
+                console.log("Compilation of " + outFile + " unsuccessful:", err);
+            });
         });
         ex.run();    
     }, {async: true});
