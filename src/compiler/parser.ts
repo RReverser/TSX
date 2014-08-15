@@ -2178,7 +2178,8 @@ module ts {
             var node = <XJSClosingElement>createNode(SyntaxKind.XJSClosingElement);
             var wasInXJSContents = scanner.setInXJSContents(false);
             var wasInXJSTag = scanner.setInXJSTag(true);
-            if (parseExpected(SyntaxKind.LessThanToken) || parseExpected(SyntaxKind.SlashToken)) {
+            parseExpected(SyntaxKind.LessThanToken);
+            if (parseExpected(SyntaxKind.SlashToken)) {
                 node.name = parseEntityName(false);
             } else {
                 node.name = createMissingNode();
