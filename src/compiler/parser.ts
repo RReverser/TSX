@@ -1075,7 +1075,7 @@ module ts {
                     // Tokens other than '/' and '>' are here for better error recovery
                     return token < SyntaxKind.Identifier && token !== SyntaxKind.EqualsToken;
                 case ParsingContext.XJSContents:
-                    return token === SyntaxKind.LessThanToken && lookAhead(() => (scanner.setInXJSContents(false), nextToken() === SyntaxKind.SlashToken));
+                    return token === SyntaxKind.LessThanToken && lookAhead(() => (scanner.setXJSContext(XJSContext.None), nextToken() === SyntaxKind.SlashToken));
             }
         }
 
@@ -2210,13 +2210,13 @@ module ts {
 
         function parseXJSElement(): XJSElement {
             var node = <XJSElement>createNode(SyntaxKind.XJSElement);
-            var wasInXJSContents = scanner.setInXJSContents(false);
+            var oldXJSContext = scanner.setXJSContext(XJSContext.None);
             node.openingElement = parseXJSOpeningElement();
             if (node.openingElement.selfClosing) {
                 node.children = createMissingList<Expression>();
             } else {
                 node.children = parseList(ParsingContext.XJSContents, /* checkForStrictMode */false, () => parseXJSValue(/* isAttrValue */false));
-                scanner.setInXJSContents(wasInXJSContents);
+                scanner.setXJSContext(oldXJSContext);
                 node.closingElement = parseXJSClosingElement();
                 var openingName = entityNameToString(node.openingElement.name);
                 var closingName = entityNameToString(node.closingElement.name);
@@ -2229,23 +2229,20 @@ module ts {
 
         function parseXJSOpeningElement(): XJSOpeningElement {
             var node = <XJSOpeningElement>createNode(SyntaxKind.XJSOpeningElement);
-            var wasInXJSContents = scanner.setInXJSContents(false);
-            var wasInXJSTag = scanner.setInXJSTag(true);
+            var oldXJSContext = scanner.setXJSContext(XJSContext.Attributes);
             parseExpected(SyntaxKind.LessThanToken);
             node.name = parseEntityName(false);
             node.attributes = parseList(ParsingContext.XJSAttributes, /* checkForStrictMode */false, parseXJSAttribute);
             node.selfClosing = parseOptional(SyntaxKind.SlashToken);
             if (node.selfClosing) {
-                scanner.setInXJSContents(wasInXJSContents);
-                scanner.setInXJSTag(wasInXJSTag);
+                scanner.setXJSContext(oldXJSContext);
             } else {
-                scanner.setInXJSContents(true);
-                scanner.setInXJSTag(false);
+                scanner.setXJSContext(XJSContext.Contents);
             }
             if (!node.selfClosing) {
                 if (token !== SyntaxKind.GreaterThanToken) {
                     scanner.setTextPos(scanner.getStartPos());
-                    scanner.setInXJSContents(true);
+                    scanner.setXJSContext(XJSContext.Contents);
                     error(Diagnostics._0_expected, tokenToString(SyntaxKind.GreaterThanToken));
                 }
                 nextToken();
@@ -2297,30 +2294,26 @@ module ts {
 
         function parseXJSClosingElement(): XJSClosingElement {
             var node = <XJSClosingElement>createNode(SyntaxKind.XJSClosingElement);
-            var wasInXJSContents = scanner.setInXJSContents(false);
-            var wasInXJSTag = scanner.setInXJSTag(true);
+            var oldXJSContext = scanner.setXJSContext(XJSContext.None);
             parseExpected(SyntaxKind.LessThanToken);
             if (parseExpected(SyntaxKind.SlashToken)) {
                 node.name = parseEntityName(false);
             } else {
                 node.name = createMissingNode();
             }
-            scanner.setInXJSContents(wasInXJSContents);
-            scanner.setInXJSTag(wasInXJSTag);
+            scanner.setXJSContext(oldXJSContext);
             parseExpected(SyntaxKind.GreaterThanToken);
             return finishNode(node);
         }
 
         function parseXJSExpressionContainer(): XJSExpressionContainer {
             var node = <XJSExpressionContainer>createNode(SyntaxKind.XJSExpressionContainer);
-            var wasInXJSContents = scanner.setInXJSContents(false);
-            var wasInXJSTag = scanner.setInXJSTag(false);
+            var oldXJSContext = scanner.setXJSContext(XJSContext.None);
             parseExpected(SyntaxKind.OpenBraceToken);
             if (token !== SyntaxKind.CloseBraceToken) {
                 node.expression = parseExpression();
             }
-            scanner.setInXJSContents(wasInXJSContents);
-            scanner.setInXJSTag(wasInXJSTag);
+            scanner.setXJSContext(oldXJSContext);
             parseExpected(SyntaxKind.CloseBraceToken);
             return finishNode(node);
         }

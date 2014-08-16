@@ -12,6 +12,12 @@ module ts {
         (pos: number, end: number): void;
     }
 
+    export enum XJSContext {
+        None,
+        Attributes,
+        Contents
+    }
+
     export interface Scanner {
         getStartPos(): number;
         getToken(): SyntaxKind;
@@ -26,8 +32,7 @@ module ts {
         reScanGreaterToken(): SyntaxKind;
         reScanSlashToken(): SyntaxKind;
         scan(): SyntaxKind;
-        setInXJSContents(state: boolean): boolean;
-        setInXJSTag(state: boolean): boolean;
+        setXJSContext(context: XJSContext): XJSContext;
         setText(text: string): void;
         setTextPos(textPos: number): void;
         tryScan<T>(callback: () => T): T;
@@ -499,8 +504,7 @@ module ts {
         var token: number;
         var tokenValue: string;
         var precedingLineBreak: boolean;
-        var inXJSTag: boolean;
-        var inXJSContents: boolean;
+        var xjsContext: XJSContext;
         var reMaybeTag: RegExp;
 
         // Populating maybeTags with found closing tags.
@@ -533,7 +537,7 @@ module ts {
             return ch >= CharacterCodes.A && ch <= CharacterCodes.Z || ch >= CharacterCodes.a && ch <= CharacterCodes.z ||
                 ch >= CharacterCodes._0 && ch <= CharacterCodes._9 || ch === CharacterCodes.$ || ch === CharacterCodes._ ||
                 ch > CharacterCodes.maxAsciiCharacter && isUnicodeIdentifierPart(ch, languageVersion) ||
-                (inXJSTag && ch === CharacterCodes.minus);
+                (xjsContext === XJSContext.Attributes && ch === CharacterCodes.minus);
         }
 
         function scanNumber(): number {
@@ -728,7 +732,7 @@ module ts {
                 if (isIdentifierPart(ch)) {
                     pos++;
                 }
-                else if (ch === CharacterCodes.backslash && !inXJSTag) {
+                else if (ch === CharacterCodes.backslash && xjsContext !== XJSContext.Attributes) {
                     ch = peekUnicodeEscape();
                     if (!(ch >= 0 && isIdentifierPart(ch))) {
                         break;
@@ -768,7 +772,7 @@ module ts {
                     return token = SyntaxKind.EndOfFileToken;
                 }
                 var ch = text.charCodeAt(pos);
-                if (inXJSContents && ch !== CharacterCodes.lessThan && ch !== CharacterCodes.openBrace && ch !== CharacterCodes.closeBrace) {
+                if (xjsContext === XJSContext.Contents && ch !== CharacterCodes.lessThan && ch !== CharacterCodes.openBrace && ch !== CharacterCodes.closeBrace) {
                     tokenValue = scanXJSText([CharacterCodes.lessThan, CharacterCodes.openBrace]);
                     return token = SyntaxKind.StringLiteral;
                 }
@@ -792,7 +796,7 @@ module ts {
                         return pos++, token = SyntaxKind.ExclamationToken;
                     case CharacterCodes.doubleQuote:
                     case CharacterCodes.singleQuote:
-                        tokenValue = inXJSTag ? scanXJSString() : scanString();
+                        tokenValue = xjsContext === XJSContext.Attributes ? scanXJSString() : scanString();
                         return token = SyntaxKind.StringLiteral;
                     case CharacterCodes.percent:
                         if (text.charCodeAt(pos + 1) === CharacterCodes.equals) {
@@ -949,7 +953,7 @@ module ts {
                             }
                             return pos += 2, token = SyntaxKind.EqualsEqualsToken;
                         }
-                        if (!inXJSTag && text.charCodeAt(pos + 1) === CharacterCodes.greaterThan) {
+                        if (xjsContext === XJSContext.None && text.charCodeAt(pos + 1) === CharacterCodes.greaterThan) {
                             return pos += 2, token = SyntaxKind.EqualsGreaterThanToken;
                         }
                         return pos++, token = SyntaxKind.EqualsToken;
@@ -1086,16 +1090,10 @@ module ts {
             return token;
         }
 
-        function setInXJSContents(state: boolean): boolean {
-            var oldState = inXJSContents;
-            inXJSContents = state;
-            return oldState;
-        }
-
-        function setInXJSTag(state: boolean): boolean {
-            var oldState = inXJSTag;
-            inXJSTag = state;
-            return oldState;
+        function setXJSContext(context: XJSContext): XJSContext {
+            var oldContext = xjsContext;
+            xjsContext = context;
+            return oldContext;
         }
 
         function tryScan<T>(callback: () => T): T {
@@ -1105,8 +1103,7 @@ module ts {
             var saveToken = token;
             var saveTokenValue = tokenValue;
             var savePrecedingLineBreak = precedingLineBreak;
-            var saveInXJSContents = inXJSContents;
-            var saveInXJSTag = inXJSTag;
+            var saveXJSContext = xjsContext;
             var result = callback();
             if (!result) {
                 pos = savePos;
@@ -1115,8 +1112,7 @@ module ts {
                 token = saveToken;
                 tokenValue = saveTokenValue;
                 precedingLineBreak = savePrecedingLineBreak;
-                inXJSContents = saveInXJSContents;
-                inXJSTag = saveInXJSTag;
+                xjsContext = saveXJSContext;
             }
             return result;
         }
@@ -1134,7 +1130,7 @@ module ts {
             tokenPos = textPos;
             token = SyntaxKind.Unknown;
             precedingLineBreak = false;
-            inXJSTag = inXJSContents = false;
+            xjsContext = XJSContext.None;
         }
 
         setText(text);
@@ -1153,8 +1149,7 @@ module ts {
             reScanGreaterToken: reScanGreaterToken,
             reScanSlashToken: reScanSlashToken,
             scan: scan,
-            setInXJSContents: setInXJSContents,
-            setInXJSTag: setInXJSTag,
+            setXJSContext: setXJSContext,
             setText: setText,
             setTextPos: setTextPos,
             tryScan: tryScan
