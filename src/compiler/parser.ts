@@ -2057,6 +2057,7 @@ module ts {
 
         function isXJSElement(): Tristate {
             return lookAhead(() => {
+                scanner.setXJSContext(XJSContext.None);
                 parseExpected(SyntaxKind.LessThanToken);
                 switch (token) {
                     case SyntaxKind.AnyKeyword:
@@ -2115,18 +2116,14 @@ module ts {
             node.selfClosing = parseOptional(SyntaxKind.SlashToken);
             if (node.selfClosing) {
                 scanner.setXJSContext(oldXJSContext);
+                parseExpected(SyntaxKind.GreaterThanToken);
             } else {
-                scanner.setXJSContext(XJSContext.Contents);
-            }
-            if (!node.selfClosing) {
                 if (token !== SyntaxKind.GreaterThanToken) {
                     scanner.setTextPos(scanner.getStartPos());
-                    scanner.setXJSContext(XJSContext.Contents);
                     error(Diagnostics._0_expected, tokenToString(SyntaxKind.GreaterThanToken));
                 }
+                scanner.setXJSContext(XJSContext.Contents);
                 nextToken();
-            } else {
-                parseExpected(SyntaxKind.GreaterThanToken);
             }
             return finishNode(node);
         }
