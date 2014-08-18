@@ -198,6 +198,7 @@ module ts {
                     child((<ParameterDeclaration>node).initializer);
             case SyntaxKind.Property:
             case SyntaxKind.PropertyAssignment:
+            case SyntaxKind.XJSAttribute:
                 return child((<PropertyDeclaration>node).name) ||
                     child((<PropertyDeclaration>node).type) ||
                     child((<PropertyDeclaration>node).initializer);
@@ -349,6 +350,17 @@ module ts {
                     child((<ImportDeclaration>node).externalModuleName);
             case SyntaxKind.ExportAssignment:
                 return child((<ExportAssignment>node).exportName);
+            case SyntaxKind.XJSExpressionContainer:
+                return child((<XJSExpressionContainer>node).expression);
+            case SyntaxKind.XJSElement:
+                return child((<XJSElement>node).openingElement) ||
+                    children((<XJSElement>node).children) ||
+                    child((<XJSElement>node).closingElement);
+            case SyntaxKind.XJSOpeningElement:
+                return child((<XJSOpeningElement>node).name) ||
+                    children((<XJSOpeningElement>node).attributes);
+            case SyntaxKind.XJSClosingElement:
+                return child((<XJSClosingElement>node).name);
         }
     }
 
