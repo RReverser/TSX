@@ -4298,6 +4298,50 @@ module ts {
             return resolveErrorCall(node);
         }
 
+        function resolveXJSElement(node: XJSElement): Signature {
+            var expressionType = checkExpression(node.openingElement.name);
+            if (expressionType === unknownType) {
+                // Another error has already been reported
+                return unknownSignature;
+            }
+            // TS 1.0 spec: 4.11
+            // If ConstructExpr is of type Any, Args can be any argument
+            // list and the result of the operation is of type Any.
+            if (expressionType === anyType) {
+                return anySignature;
+            }
+
+            // If ConstructExpr's apparent type(section 3.8.1) is an object type with one or
+            // more construct signatures, the expression is processed in the same manner as a
+            // function call, but using the construct signatures as the initial set of candidate
+            // signatures for overload resolution.The result type of the function call becomes
+            // the result type of the operation.
+            expressionType = getApparentType(expressionType);
+            if (expressionType === unknownType) {
+                // handler cases when original expressionType is a type parameter with invalid constraint
+                // another error has already been reported
+                return unknownSignature;
+            }
+
+            // Technically, this signatures list may be incomplete. We are taking the apparent type,
+            // but we are not including construct signatures that may have been added to the Object or
+            // Function interface, since they have none by default. This is a bit of a leap of faith
+            // that the user will not add any.
+            if (expressionType.flags & TypeFlags.ObjectType) {
+                var resolved = resolveObjectTypeMembers(<ObjectType>expressionType);
+                var factorySignatures = resolved.constructSignatures.concat(resolved.callSignatures);
+                if (factorySignatures.length) {
+                    if (factorySignatures.length > 1) {
+                        error(node, Diagnostics.JSX_element_should_refer_to_unambigous_constructor_or_factory);
+                    }
+                    return factorySignatures[0];
+                }
+            }
+
+            error(node, Diagnostics.Cannot_use_new_with_an_expression_whose_type_lacks_a_call_or_construct_signature);
+            return unknownSignature;
+        }
+
         function getResolvedSignature(node: CallExpression): Signature {
             var links = getNodeLinks(node);
             if (!links.resolvedSignature) {
@@ -4335,6 +4379,10 @@ module ts {
                 }
             }
             return targetType;
+        }
+
+        function checkXJSElement(node: XJSElement): Type {
+            return getReturnTypeOfSignature(resolveXJSElement(node));
         }
 
         function getTypeAtPosition(signature: Signature, pos: number): Type {
@@ -4879,6 +4927,8 @@ module ts {
                     return checkBinaryExpression(<BinaryExpression>node, contextualMapper);
                 case SyntaxKind.ConditionalExpression:
                     return checkConditionalExpression(<ConditionalExpression>node, contextualMapper);
+                case SyntaxKind.XJSElement:
+                    return checkXJSElement(<XJSElement>node);
             }
             return unknownType;
         }
@@ -6713,7 +6763,7 @@ module ts {
         function isTypeReferenceIdentifier(entityName: EntityName): boolean {
             var node: Node = entityName;
             while (node.parent && node.parent.kind === SyntaxKind.QualifiedName) node = node.parent;
-            return node.parent && node.parent.kind === SyntaxKind.TypeReference;
+            return node.parent && (node.parent.kind === SyntaxKind.TypeReference || node.parent.kind === SyntaxKind.XJSOpeningElement);
         }
 
         function isExpression(node: Node): boolean {
@@ -6739,6 +6789,7 @@ module ts {
                 case SyntaxKind.BinaryExpression:
                 case SyntaxKind.ConditionalExpression:
                 case SyntaxKind.OmittedExpression:
+                case SyntaxKind.XJSElement:
                     return true;
                 case SyntaxKind.QualifiedName:
                     while (node.parent.kind === SyntaxKind.QualifiedName) node = node.parent;
@@ -6915,7 +6966,8 @@ module ts {
                 }
             }
             else if (isTypeReferenceIdentifier(entityName)) {
-                var meaning = entityName.parent.kind === SyntaxKind.TypeReference ? SymbolFlags.Type : SymbolFlags.Namespace;
+                var parentKind = entityName.parent.kind;
+                var meaning = (parentKind === SyntaxKind.TypeReference || parentKind === SyntaxKind.XJSOpeningElement) ? SymbolFlags.Type : SymbolFlags.Namespace;
                 // Include Import in the meaning, this ensures that we do not follow aliases to where they point and instead
                 // return the alias symbol.
                 meaning |= SymbolFlags.Import;
