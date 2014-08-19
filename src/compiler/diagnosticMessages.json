@@ -1596,5 +1596,9 @@
     "Expected closing tag for <{0} ...> but found </{1}>.": {
         "category": "Error",
         "code":  11004
+    },
+    "JSX element should refer to unambigous constructor or factory.": {
+        "category": "Error",
+        "code": 11005
     }
 }
