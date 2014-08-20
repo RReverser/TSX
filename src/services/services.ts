@@ -394,7 +394,7 @@ module ts {
             return SourceFileObject.createSourceFileObject(this.filename, scriptSnapshot, this.languageVersion, version, isOpen, newSyntaxTree);
         }
 
-        public static createSourceFileObject(filename: string, scriptSnapshot: TypeScript.IScriptSnapshot, languageVersion: ScriptTarget, version: string, isOpen: boolean, syntaxTree?: TypeScript.SyntaxTree) {
+        public static createSourceFileObject(filename: string, scriptSnapshot: TypeScript.IScriptSnapshot, languageVersion: ScriptTarget, version?: string, isOpen?: boolean, syntaxTree?: TypeScript.SyntaxTree) {
             var newSourceFile = <SourceFileObject><any>createSourceFile(filename, scriptSnapshot.getText(0, scriptSnapshot.getLength()), languageVersion, version, isOpen);
             newSourceFile.scriptSnapshot = scriptSnapshot;
             newSourceFile.syntaxTree = syntaxTree;
@@ -722,6 +722,7 @@ module ts {
         InSingleQuoteStringLiteral,
         InDoubleQuoteStringLiteral,
         EndingWithDotToken,
+        InXJSContents,
     }
 
     export enum TokenClass {
@@ -734,6 +735,7 @@ module ts {
         NumberLiteral,
         StringLiteral,
         RegExpLiteral,
+        XJSText,
     }
 
     export interface ClassificationResult {
@@ -3719,7 +3721,7 @@ module ts {
         /// we have a series of divide operator. this list allows us to be more accurate by ruling out 
         /// locations where a regexp cannot exist.
         if (!noRegexTable) {
-            noRegexTable = {};
+            noRegexTable = [];
             noRegexTable[SyntaxKind.Identifier] = true;
             noRegexTable[SyntaxKind.StringLiteral] = true;
             noRegexTable[SyntaxKind.NumericLiteral] = true;
@@ -3740,6 +3742,7 @@ module ts {
             var lastTokenOrCommentEnd = 0;
             var lastToken = SyntaxKind.Unknown;
             var inUnterminatedMultiLineComment = false;
+            var maybeHasJSX = false;
 
             // If we're in a string literal, then prepend: "\
             // (and a newline).  That way when we lex we'll think we're still in a string literal.
@@ -3762,6 +3765,11 @@ module ts {
                 case EndOfLineState.EndingWithDotToken:
                     lastToken = SyntaxKind.DotToken;
                     break;
+                case EndOfLineState.InXJSContents:
+                    text = "<_ _>\n" + text;
+                    offset = 6;
+                    maybeHasJSX = true;
+                    break;
             }
 
             var result: ClassificationResult = {
@@ -3782,6 +3790,8 @@ module ts {
                 }
                 else if (lastToken === SyntaxKind.DotToken) {
                     token = SyntaxKind.Identifier;
+                } else if (lastToken === SyntaxKind.LessThanToken && scanner.isIdentifier()) {
+                    maybeHasJSX = true;
                 }
 
                 lastToken = token;
@@ -3789,6 +3799,10 @@ module ts {
                 processToken();
             }
             while (token !== SyntaxKind.EndOfFileToken);
+
+            if (maybeHasJSX) {
+                fixXJSContents();
+            }
 
             return result;
 
@@ -3853,6 +3867,40 @@ module ts {
                     }
 
                     result.entries.push({ length: length, classification: classification });
+                }
+            }
+
+            function fixXJSContents(): void {
+                var sourceFile = SourceFileObject.createSourceFileObject(
+                    'script.ts',
+                    TypeScript.ScriptSnapshot.fromString(text),
+                    ts.ScriptTarget.ES5
+                );
+
+                forEach(sourceFile.statements, function callback(node: ts.Node) {
+                    if (node.kind === SyntaxKind.XJSElement) {
+                        forEach((<XJSElement>node).children, (child: ts.Expression) => {
+                            if (child.kind === ts.SyntaxKind.StringLiteral) {
+                                var startIndex = 0;
+                                for (var startPos = offset; startIndex < result.entries.length && startPos < child.pos; startIndex++) {
+                                    startPos += result.entries[startIndex].length;
+                                }
+                                var endIndex = startIndex;
+                                for (var endPos = startPos; endIndex < result.entries.length && endPos < child.end; endIndex++) {
+                                    endPos += result.entries[endIndex].length;
+                                }
+                                result.entries.splice(startIndex, endIndex - startIndex, { length: endPos - startPos, classification: TokenClass.XJSText });
+                            } else {
+                                callback(child);
+                            }
+                        });
+                    } else {
+                        forEachChild(node, callback);
+                    }
+                });
+
+                if (result.entries[result.entries.length - 1].classification === TokenClass.XJSText) {
+                    result.finalLexState = EndOfLineState.InXJSContents;
                 }
             }
         }
