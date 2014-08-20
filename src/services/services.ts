@@ -3192,14 +3192,14 @@ module ts {
     /// Classifier
     export function createClassifier(host: Logger): Classifier {
         var scanner: Scanner;
-        var noRegexTable: boolean[];
+        var noRegexTable: { [key: number]: boolean };
 
         /// We do not have a full parser support to know when we should parse a regex or not
         /// If we consider every slash token to be a regex, we could be missing cases like "1/2/3", where
         /// we have a series of divide operator. this list allows us to be more accurate by ruling out 
         /// locations where a regexp cannot exist.
         if (!noRegexTable) {
-            noRegexTable = [];
+            noRegexTable = {};
             noRegexTable[SyntaxKind.Identifier] = true;
             noRegexTable[SyntaxKind.StringLiteral] = true;
             noRegexTable[SyntaxKind.NumericLiteral] = true;
@@ -3212,6 +3212,7 @@ module ts {
             noRegexTable[SyntaxKind.CloseBraceToken] = true;
             noRegexTable[SyntaxKind.TrueKeyword] = true;
             noRegexTable[SyntaxKind.FalseKeyword] = true;
+            noRegexTable[SyntaxKind.LessThanToken] = true;
         }
 
         function getClassificationsForLine(text: string, lexState: EndOfLineState): ClassificationResult {
