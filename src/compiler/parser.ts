@@ -2102,7 +2102,7 @@ module ts {
 
         function parseXJSElement(): XJSElement {
             var node = <XJSElement>createNode(SyntaxKind.XJSElement);
-            var oldXJSContext = scanner.setXJSContext(XJSContext.None);
+            var oldXJSContext = scanner.getXJSContext();
             node.openingElement = parseXJSOpeningElement();
             if (node.openingElement.selfClosing) {
                 node.children = createMissingList<Expression>();
