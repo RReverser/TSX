@@ -32,6 +32,7 @@ module ts {
         reScanGreaterToken(): SyntaxKind;
         reScanSlashToken(): SyntaxKind;
         scan(): SyntaxKind;
+        getXJSContext(): XJSContext;
         setXJSContext(context: XJSContext): XJSContext;
         setText(text: string): void;
         setTextPos(textPos: number): void;
@@ -1149,6 +1150,7 @@ module ts {
             reScanGreaterToken: reScanGreaterToken,
             reScanSlashToken: reScanSlashToken,
             scan: scan,
+            getXJSContext: () => xjsContext,
             setXJSContext: setXJSContext,
             setText: setText,
             setTextPos: setTextPos,
