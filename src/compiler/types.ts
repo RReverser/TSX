@@ -40,6 +40,7 @@ module ts {
         MinusToken,
         AsteriskToken,
         SlashToken,
+        SlashSlashSlashBeforeLessThanToken,
         PercentToken,
         PlusPlusToken,
         MinusMinusToken,

@@ -538,6 +538,7 @@ module ts {
         TupleElementTypes,       // Element types in tuple element type list
         XJSAttributes,           // JSX attributes in JSX opening element
         XJSContents,             // JSX inner contents
+        ReferenceComments,       // Reference tag comments
         Count                    // Number of parsing contexts
     }
 
@@ -1042,6 +1043,8 @@ module ts {
                     return token >= SyntaxKind.Identifier || token === SyntaxKind.EqualsToken;
                 case ParsingContext.XJSContents:
                     return token === SyntaxKind.StringLiteral || token === SyntaxKind.OpenBraceToken || token === SyntaxKind.LessThanToken;
+                case ParsingContext.ReferenceComments:
+                    return token === SyntaxKind.SlashSlashSlashBeforeLessThanToken;
             }
 
             Debug.fail("Non-exhaustive case in 'isListElement'.");
@@ -1089,6 +1092,8 @@ module ts {
                     return token < SyntaxKind.Identifier && token !== SyntaxKind.EqualsToken;
                 case ParsingContext.XJSContents:
                     return token === SyntaxKind.LessThanToken && lookAhead(() => (scanner.setXJSContext(XJSContext.None), nextToken() === SyntaxKind.SlashToken));
+                case ParsingContext.ReferenceComments:
+                    return token !== SyntaxKind.SlashSlashSlashBeforeLessThanToken;
             }
         }
 
@@ -3845,31 +3850,18 @@ module ts {
             return statement;
         }
 
-        function parseReferenceComments(): ReferenceComment[] {
-            var result: ReferenceComment[] = [];
-
-            commentRanges = [];
-            token = scanner.scan();
-
-            while (true) {
-                if (token !== SyntaxKind.LessThanToken || !commentRanges.length) {
-                    break;
-                }
-                var range = commentRanges[commentRanges.length - 1];
-                var comment = sourceText.substring(range.pos, range.pos + 3);
-                if (comment !== '///') {
-                    break;
-                }
-                var node = <ReferenceComment>createNode(SyntaxKind.ReferenceComment);
-                node.pos = range.pos;
-                commentRanges = [];
-                node.reference = parseXJSElement();
-                result.push(finishNode(node));
-            }
-
-            commentRanges = undefined;
-
+        function parseReferenceComments(): NodeArray<ReferenceComment> {
+            nextToken();
+            var result = parseList(ParsingContext.ReferenceComments, false, parseReferenceComment);
+            scanner.setXJSContext(XJSContext.None);
             return result;
+        }
+
+        function parseReferenceComment(): ReferenceComment {
+            var node = <ReferenceComment>createNode(SyntaxKind.ReferenceComment);
+            parseExpected(SyntaxKind.SlashSlashSlashBeforeLessThanToken);
+            node.reference = parseXJSElement();
+            return finishNode(node);
         }
 
         function processReferenceComments(): ReferenceComments {
