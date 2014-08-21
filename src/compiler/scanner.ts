@@ -853,8 +853,10 @@ module ts {
                         if (text.charCodeAt(pos + 1) === CharacterCodes.slash) {
                             pos += 2;
 
+                            var isTripleSlash = text.charCodeAt(pos) === CharacterCodes.slash;
+
                             while (pos < len) {
-                                if (isLineBreak(text.charCodeAt(pos))) {
+                                if (isLineBreak(text.charCodeAt(pos)) || (isTripleSlash && text.charCodeAt(pos) === CharacterCodes.lessThan)) {
                                     break;
                                 }
                                 pos++;

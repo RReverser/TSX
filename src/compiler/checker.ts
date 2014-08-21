@@ -4298,8 +4298,8 @@ module ts {
             return resolveErrorCall(node);
         }
 
-        function resolveXJSElement(node: XJSElement): Signature {
-            var expressionType = checkExpression(node.openingElement.name);
+        function resolveExactXJSElement(name: EntityName): Signature {
+            var expressionType = checkExpression(name);
             if (expressionType === unknownType) {
                 // Another error has already been reported
                 return unknownSignature;
@@ -4332,14 +4332,38 @@ module ts {
                 var factorySignatures = resolved.constructSignatures.concat(resolved.callSignatures);
                 if (factorySignatures.length) {
                     if (factorySignatures.length > 1) {
-                        error(node, Diagnostics.JSX_element_should_refer_to_unambigous_constructor_or_factory);
+                        error(name, Diagnostics.JSX_element_should_refer_to_unambigous_constructor_or_factory);
                     }
                     return factorySignatures[0];
                 }
             }
 
-            error(node, Diagnostics.Cannot_use_new_with_an_expression_whose_type_lacks_a_call_or_construct_signature);
+            error(name, Diagnostics.Cannot_use_new_with_an_expression_whose_type_lacks_a_call_or_construct_signature);
             return unknownSignature;
+        }
+
+        function resolveXJSElement(node: XJSElement): Signature {
+            var name = node.openingElement.name;
+
+            if (name.kind === SyntaxKind.Identifier) {
+                var sourceFile = getSourceFile(node);
+                var namespace = sourceFile && sourceFile.jsxNamespace;
+                if (namespace) {
+                    var nsName = <QualifiedName>new (objectAllocator.getNodeConstructor(SyntaxKind.QualifiedName));
+                    nsName.pos = name.pos;
+                    nsName.end = name.end;
+                    nsName.flags = NodeFlags.Synthetic;
+                    nsName.parent = name.parent;
+                    nsName.left = namespace;
+                    nsName.right = <Identifier>name;
+                    var signature = resolveExactXJSElement(nsName);
+                    if (signature !== unknownSignature) {
+                        return signature;
+                    }
+                }
+            }
+
+            return resolveExactXJSElement(name);
         }
 
         function getResolvedSignature(node: CallExpression): Signature {
