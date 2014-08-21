@@ -207,6 +207,7 @@ module ts {
         XJSOpeningElement,
         XJSClosingElement,
         XJSAttribute,
+        ReferenceComment,
         // Enum
         EnumMember,
         // Top-level nodes
@@ -545,6 +546,10 @@ module ts {
 
     export interface XJSAttribute extends PropertyDeclaration { }
 
+    export interface ReferenceComment extends Statement {
+        reference: XJSElement;
+    }
+
     export interface FileReference extends TextRange {
         filename: string;
     }
@@ -560,6 +565,7 @@ module ts {
         getPositionFromLineAndCharacter(line: number, character: number): number;
         amdDependencies: string[];
         referencedFiles: FileReference[];
+        jsxNamespace: EntityName;
         syntacticErrors: Diagnostic[];
         semanticErrors: Diagnostic[];
         hasNoDefaultLib: boolean;

@@ -22,6 +22,7 @@ module ts {
     interface ReferenceComments {
         referencedFiles: FileReference[];
         amdDependencies: string[];
+        jsxNamespace: EntityName;
     }
 
     export function getModuleNameFromFilename(filename: string) {
@@ -3844,49 +3845,84 @@ module ts {
             return statement;
         }
 
-        function processReferenceComments(): ReferenceComments {
-            var referencedFiles: FileReference[] = [];
-            var amdDependencies: string[] = [];
+        function parseReferenceComments(): ReferenceComment[] {
+            var result: ReferenceComment[] = [];
+
             commentRanges = [];
             token = scanner.scan();
 
-            for (var i = 0; i < commentRanges.length; i++) {
-                var range = commentRanges[i];
-                var comment = sourceText.substring(range.pos, range.end);
-                var simpleReferenceRegEx = /^\/\/\/\s*<reference\s+/gim;
-                if (simpleReferenceRegEx.exec(comment)) {
-                    var isNoDefaultLibRegEx = /^(\/\/\/\s*<reference\s+no-default-lib=)('|")(.+?)\2\s*\/>/gim;
-                    if (isNoDefaultLibRegEx.exec(comment)) {
-                        file.hasNoDefaultLib = true;
-                    }
-                    else {
-                        var matchResult = fullTripleSlashReferencePathRegEx.exec(comment);
-                        if (!matchResult) {
-                            var start = range.pos;
-                            var length = range.end - start;
-                            errorAtPos(start, length, Diagnostics.Invalid_reference_directive_syntax);
-                        }
-                        else {
-                            referencedFiles.push({
-                                pos: range.pos,
-                                end: range.end,
-                                filename: matchResult[3]
-                            });
-                        }
-                    }
+            while (true) {
+                if (token !== SyntaxKind.LessThanToken || !commentRanges.length) {
+                    break;
                 }
-                else {
-                    var amdDependencyRegEx = /^\/\/\/\s*<amd-dependency\s+path\s*=\s*('|")(.+?)\1/gim;
-                    var amdDependencyMatchResult = amdDependencyRegEx.exec(comment);
-                    if (amdDependencyMatchResult) {
-                        amdDependencies.push(amdDependencyMatchResult[2]);
-                    }
+                var range = commentRanges[commentRanges.length - 1];
+                var comment = sourceText.substring(range.pos, range.pos + 3);
+                if (comment !== '///') {
+                    break;
                 }
+                var node = <ReferenceComment>createNode(SyntaxKind.ReferenceComment);
+                node.pos = range.pos;
+                commentRanges = [];
+                node.reference = parseXJSElement();
+                result.push(finishNode(node));
             }
+
             commentRanges = undefined;
+
+            return result;
+        }
+
+        function processReferenceComments(): ReferenceComments {
+            var items = parseReferenceComments();
+            var referencedFiles: FileReference[] = [];
+            var amdDependencies: string[] = [];
+            var jsxNamespace: EntityName;
+
+            forEach(items, refComment => {
+                var opening = refComment.reference.openingElement;
+
+                if (opening.name.kind !== SyntaxKind.Identifier) {
+                    return;
+                }
+
+                var attrs = arrayToMap(opening.attributes, attr => attr.name.text);
+
+                switch ((<Identifier>opening.name).text) {
+                    case 'reference':
+                        if (hasProperty(attrs, 'no-default-lib')) {
+                            file.hasNoDefaultLib = true;
+                        } else {
+                            var attr = getProperty(attrs, 'path');
+                            if (attr && attr.initializer && attr.initializer.kind === SyntaxKind.StringLiteral) {
+                                referencedFiles.push({
+                                    pos: attr.initializer.pos,
+                                    end: attr.initializer.end,
+                                    filename: (<LiteralExpression>attr.initializer).text
+                                });
+                            }
+                        }
+                        break;
+
+                    case 'amd-dependency':
+                        var attr = getProperty(attrs, 'path');
+                        if (attr && attr.initializer && attr.initializer.kind === SyntaxKind.StringLiteral) {
+                            amdDependencies.push((<LiteralExpression>attr.initializer).text);
+                        }
+                        break;
+
+                    case 'jsx':
+                        var attr = getProperty(attrs, 'namespace');
+                        if (attr && attr.initializer && attr.initializer.kind === SyntaxKind.XJSExpressionContainer) {
+                            jsxNamespace = (<XJSExpressionContainer>attr.initializer).expression;
+                        }
+                        break;
+                }
+            });
+
             return {
                 referencedFiles: referencedFiles,
-                amdDependencies: amdDependencies
+                amdDependencies: amdDependencies,
+                jsxNamespace: jsxNamespace
             };
         }
 
@@ -3912,9 +3948,10 @@ module ts {
         file.getPositionFromLineAndCharacter = getPositionFromSourceLineAndCharacter;
         file.syntacticErrors = [];
         file.semanticErrors = [];
-        var referenceComments = processReferenceComments(); 
+        var referenceComments = processReferenceComments();
         file.referencedFiles = referenceComments.referencedFiles;
         file.amdDependencies = referenceComments.amdDependencies;
+        file.jsxNamespace = referenceComments.jsxNamespace;
         file.statements = parseList(ParsingContext.SourceElements, /*checkForStrictMode*/ true, parseSourceElement);
         file.externalModuleIndicator = getExternalModuleIndicator();
         file.nodeCount = nodeCount;

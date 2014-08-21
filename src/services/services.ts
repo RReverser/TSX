@@ -311,6 +311,7 @@ module ts {
         public getPositionFromLineAndCharacter(line: number, character: number): number { return -1; }
         public amdDependencies: string[];
         public referencedFiles: FileReference[];
+        public jsxNamespace: EntityName;
         public syntacticErrors: Diagnostic[];
         public semanticErrors: Diagnostic[];
         public hasNoDefaultLib: boolean;
