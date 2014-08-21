@@ -852,11 +852,17 @@ module ts {
                         // Single-line comment
                         if (text.charCodeAt(pos + 1) === CharacterCodes.slash) {
                             pos += 2;
-
-                            var isTripleSlash = text.charCodeAt(pos) === CharacterCodes.slash;
-
+                            if (text.charCodeAt(pos) === CharacterCodes.slash) {
+                                var ch = text.charCodeAt(++pos);
+                                while (pos < len && isWhiteSpace(ch) && !isLineBreak(ch)) {
+                                    ch = text.charCodeAt(++pos);
+                                }
+                                if (ch === CharacterCodes.lessThan) {
+                                    return token = SyntaxKind.SlashSlashSlashBeforeLessThanToken;
+                                }
+                            }
                             while (pos < len) {
-                                if (isLineBreak(text.charCodeAt(pos)) || (isTripleSlash && text.charCodeAt(pos) === CharacterCodes.lessThan)) {
+                                if (isLineBreak(text.charCodeAt(pos))) {
                                     break;
                                 }
                                 pos++;
