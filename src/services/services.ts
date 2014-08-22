@@ -1808,6 +1808,23 @@ module ts {
 
             Debug.assert(mappedNode, "Could not map a Fidelity node to an AST node");
 
+            var mappedParent = mappedNode.parent;
+
+            if (mappedParent && mappedParent.parent) {
+                if (mappedParent.kind === SyntaxKind.XJSOpeningElement) {
+                    isRightOfDot = true;
+                    mappedNode = mappedParent;
+                } else
+                if (mappedParent.kind === SyntaxKind.XJSAttribute) {
+                    isRightOfDot = true;
+                    mappedNode = mappedParent.parent;
+                } else
+                if (mappedParent.kind === SyntaxKind.XJSExpressionContainer && mappedParent.parent.kind === SyntaxKind.XJSAttribute) {
+                    isRightOfDot = true;
+                    mappedNode = mappedParent.parent.parent;
+                }
+            }
+
             // Get the completions
             activeCompletionSession = {
                 filename: filename,
