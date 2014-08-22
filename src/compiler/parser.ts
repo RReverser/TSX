@@ -19,12 +19,6 @@ module ts {
 
     var moduleExtensions = [".d.ts", ".ts", ".js"];
 
-    interface ReferenceComments {
-        referencedFiles: FileReference[];
-        amdDependencies: string[];
-        jsxNamespace: EntityName;
-    }
-
     export function getModuleNameFromFilename(filename: string) {
         for (var i = 0; i < moduleExtensions.length; i++) {
             var ext = moduleExtensions[i];
@@ -2279,7 +2273,7 @@ module ts {
         function parseXJSValue(isAttrValue: boolean): Expression {
             if (token === SyntaxKind.OpenBraceToken) {
                 var container = parseXJSExpressionContainer();
-                if (isAttrValue && !container.expression) {
+                if (isAttrValue && container.expression.kind === SyntaxKind.Missing) {
                     grammarErrorOnNode(container, Diagnostics.JSX_attribute_value_can_t_be_empty_expression);
                 }
                 return container;
@@ -2297,13 +2291,15 @@ module ts {
         }
 
         function entityNameToString(entity: EntityName): string {
-            if ('text' in entity) {
-                return (<Identifier>entity).text;
-            } else if ('left' in entity && 'right' in entity) {
-                var qualifiedName = <QualifiedName>entity;
-                return entityNameToString(qualifiedName.left) + '.' + qualifiedName.right.text;
-            } else {
-                return "(Missing)";
+            switch (entity.kind) {
+                case SyntaxKind.QualifiedName:
+                    return entityNameToString((<QualifiedName>entity).left) + '.' + identifierToString((<QualifiedName>entity).right);
+
+                case SyntaxKind.Identifier:
+                    return (<Identifier>entity).text;
+
+                default:
+                    return "(Missing)";
             }
         }
 
@@ -2325,9 +2321,7 @@ module ts {
             var node = <XJSExpressionContainer>createNode(SyntaxKind.XJSExpressionContainer);
             var oldXJSContext = scanner.setXJSContext(XJSContext.None);
             parseExpected(SyntaxKind.OpenBraceToken);
-            if (token !== SyntaxKind.CloseBraceToken) {
-                node.expression = parseExpression();
-            }
+            node.expression = token !== SyntaxKind.CloseBraceToken ? parseExpression() : createMissingNode();
             scanner.setXJSContext(oldXJSContext);
             parseExpected(SyntaxKind.CloseBraceToken);
             return finishNode(node);
@@ -3055,6 +3049,7 @@ module ts {
                 case SyntaxKind.ThrowKeyword:
                 case SyntaxKind.TryKeyword:
                 case SyntaxKind.DebuggerKeyword:
+                case SyntaxKind.SlashSlashSlashBeforeLessThanToken:
                 // 'catch' and 'finally' do not actually indicate that the code is part of a statement,
                 // however, we say they are here so that we may gracefully parse them and error later.
                 case SyntaxKind.CatchKeyword:
@@ -3119,6 +3114,8 @@ module ts {
                     return parseTryStatement();
                 case SyntaxKind.DebuggerKeyword:
                     return parseDebuggerStatement();
+                case SyntaxKind.SlashSlashSlashBeforeLessThanToken:
+                    return parseReferenceComment();
                 default:
                     if (isLabel()) {
                         return parseLabelledStatement();
@@ -3850,72 +3847,53 @@ module ts {
             return statement;
         }
 
-        function parseReferenceComments(): NodeArray<ReferenceComment> {
-            nextToken();
-            var result = parseList(ParsingContext.ReferenceComments, false, parseReferenceComment);
-            scanner.setXJSContext(XJSContext.None);
-            return result;
-        }
-
         function parseReferenceComment(): ReferenceComment {
             var node = <ReferenceComment>createNode(SyntaxKind.ReferenceComment);
             parseExpected(SyntaxKind.SlashSlashSlashBeforeLessThanToken);
             node.reference = parseXJSElement();
-            return finishNode(node);
+            finishNode(node);
+            processReferenceComment(node);
+            return node;
         }
 
-        function processReferenceComments(): ReferenceComments {
-            var items = parseReferenceComments();
-            var referencedFiles: FileReference[] = [];
-            var amdDependencies: string[] = [];
-            var jsxNamespace: EntityName;
+        function processReferenceComment(refComment: ReferenceComment): void {
+            var opening = refComment.reference.openingElement;
 
-            forEach(items, refComment => {
-                var opening = refComment.reference.openingElement;
+            if (opening.name.kind !== SyntaxKind.Identifier) {
+                return;
+            }
 
-                if (opening.name.kind !== SyntaxKind.Identifier) {
-                    return;
-                }
+            var attrs = arrayToMap(opening.attributes, attr => attr.name.text);
 
-                var attrs = arrayToMap(opening.attributes, attr => attr.name.text);
+            switch ((<Identifier>opening.name).text) {
+                case 'reference':
+                    if (hasProperty(attrs, 'no-default-lib')) {
+                        file.hasNoDefaultLib = true;
+                    }
+                    var attr = getProperty(attrs, 'path');
+                    if (attr && attr.initializer && attr.initializer.kind === SyntaxKind.StringLiteral) {
+                        file.referencedFiles.push({
+                            pos: attr.initializer.pos,
+                            end: attr.initializer.end,
+                            filename: (<LiteralExpression>attr.initializer).text
+                        });
+                    }
+                    break;
 
-                switch ((<Identifier>opening.name).text) {
-                    case 'reference':
-                        if (hasProperty(attrs, 'no-default-lib')) {
-                            file.hasNoDefaultLib = true;
-                        } else {
-                            var attr = getProperty(attrs, 'path');
-                            if (attr && attr.initializer && attr.initializer.kind === SyntaxKind.StringLiteral) {
-                                referencedFiles.push({
-                                    pos: attr.initializer.pos,
-                                    end: attr.initializer.end,
-                                    filename: (<LiteralExpression>attr.initializer).text
-                                });
-                            }
-                        }
-                        break;
+                case 'amd-dependency':
+                    var attr = getProperty(attrs, 'path');
+                    if (attr && attr.initializer && attr.initializer.kind === SyntaxKind.StringLiteral) {
+                        file.amdDependencies.push((<LiteralExpression>attr.initializer).text);
+                    }
+                    break;
 
-                    case 'amd-dependency':
-                        var attr = getProperty(attrs, 'path');
-                        if (attr && attr.initializer && attr.initializer.kind === SyntaxKind.StringLiteral) {
-                            amdDependencies.push((<LiteralExpression>attr.initializer).text);
-                        }
-                        break;
-
-                    case 'jsx':
-                        var attr = getProperty(attrs, 'namespace');
-                        if (attr && attr.initializer && attr.initializer.kind === SyntaxKind.XJSExpressionContainer) {
-                            jsxNamespace = (<XJSExpressionContainer>attr.initializer).expression;
-                        }
-                        break;
-                }
-            });
-
-            return {
-                referencedFiles: referencedFiles,
-                amdDependencies: amdDependencies,
-                jsxNamespace: jsxNamespace
-            };
+                case 'jsx':
+                    var attr = getProperty(attrs, 'namespace');
+                    if (attr && attr.initializer && attr.initializer.kind === SyntaxKind.XJSExpressionContainer) {
+                        file.jsxNamespace = (<XJSExpressionContainer>attr.initializer).expression;
+                    }
+                    break;
+            }
         }
 
         function getExternalModuleIndicator() {
@@ -3940,10 +3918,10 @@ module ts {
         file.getPositionFromLineAndCharacter = getPositionFromSourceLineAndCharacter;
         file.syntacticErrors = [];
         file.semanticErrors = [];
-        var referenceComments = processReferenceComments();
-        file.referencedFiles = referenceComments.referencedFiles;
-        file.amdDependencies = referenceComments.amdDependencies;
-        file.jsxNamespace = referenceComments.jsxNamespace;
+        file.referencedFiles = [];
+        file.amdDependencies = [];
+        file.jsxNamespace = createMissingNode();
+        nextToken();
         file.statements = parseList(ParsingContext.SourceElements, /*checkForStrictMode*/ true, parseSourceElement);
         file.externalModuleIndicator = getExternalModuleIndicator();
         file.nodeCount = nodeCount;
