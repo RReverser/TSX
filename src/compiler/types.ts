@@ -520,9 +520,7 @@ module ts {
         exportName: Identifier;
     }
 
-    export interface XJSExpressionContainer extends Expression {
-        expression?: Expression;
-    }
+    export interface XJSExpressionContainer extends ParenExpression { }
 
     export interface XJSElement extends Expression {
         openingElement: XJSOpeningElement;

@@ -4348,7 +4348,7 @@ module ts {
             if (name.kind === SyntaxKind.Identifier) {
                 var sourceFile = getSourceFile(node);
                 var namespace = sourceFile && sourceFile.jsxNamespace;
-                if (namespace) {
+                if (namespace && namespace.kind !== SyntaxKind.Missing) {
                     var nsName = <QualifiedName>new (objectAllocator.getNodeConstructor(SyntaxKind.QualifiedName));
                     nsName.pos = name.pos;
                     nsName.end = name.end;

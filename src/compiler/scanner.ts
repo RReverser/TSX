@@ -858,7 +858,7 @@ module ts {
                                     ch = text.charCodeAt(++pos);
                                 }
                                 if (ch === CharacterCodes.lessThan) {
-                                    return token = SyntaxKind.SlashSlashSlashBeforeLessThanToken;
+                                    return pos = tokenPos + 3, token = SyntaxKind.SlashSlashSlashBeforeLessThanToken;
                                 }
                             }
                             while (pos < len) {
