@@ -7173,6 +7173,16 @@ module ts {
                 return declaredType !== unknownType ? declaredType : getTypeOfSymbol(symbol);
             }
 
+            if (node.kind === SyntaxKind.XJSOpeningElement && node.parent) {
+                var signature = resolveXJSElement(<XJSElement>node.parent);
+                if (signature !== unknownSignature) {
+                    var param = signature.parameters[0];
+                    if (param) {
+                        return getTypeOfSymbol(param);
+                    }
+                }
+            }
+
             return unknownType;
         }
 
