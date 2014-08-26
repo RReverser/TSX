@@ -354,6 +354,8 @@ module ts {
                     children((<XJSOpeningElement>node).attributes);
             case SyntaxKind.XJSClosingElement:
                 return child((<XJSClosingElement>node).name);
+            case SyntaxKind.ReferenceComment:
+                return child((<ReferenceComment>node).reference);
         }
     }
 
@@ -2086,7 +2088,7 @@ module ts {
                     default:
                         if (isIdentifier()) {
                             var isMaybeTag = scanner.isMaybeTag();
-                            if (nextToken() === SyntaxKind.SlashToken || token >= SyntaxKind.Identifier) {
+                            if (nextToken() === SyntaxKind.SlashToken || token >= SyntaxKind.Identifier || token === SyntaxKind.EndOfFileToken) {
                                 return Tristate.True;
                             } else if (token === SyntaxKind.GreaterThanToken) {
                                 return isMaybeTag ? Tristate.Unknown : Tristate.False;

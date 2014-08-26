@@ -335,9 +335,6 @@ module ts {
                         bindAnonymousDeclaration(node, SymbolFlags.ValueModule, '"' + getModuleNameFromFilename((<SourceFile>node).filename) + '"');
                         break;
                     }
-                    parent = node;
-                    bind((<SourceFile>node).jsxNamespace);
-                    parent = undefined;
                 default:
                     var saveParent = parent;
                     parent = node;
