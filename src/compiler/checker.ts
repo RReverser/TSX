@@ -6787,7 +6787,7 @@ module ts {
         function isTypeReferenceIdentifier(entityName: EntityName): boolean {
             var node: Node = entityName;
             while (node.parent && node.parent.kind === SyntaxKind.QualifiedName) node = node.parent;
-            return node.parent && (node.parent.kind === SyntaxKind.TypeReference || node.parent.kind === SyntaxKind.XJSOpeningElement);
+            return node.parent && node.parent.kind === SyntaxKind.TypeReference;
         }
 
         function isExpression(node: Node): boolean {
