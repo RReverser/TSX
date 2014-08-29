@@ -2206,6 +2206,8 @@ module ts {
                     case SyntaxKind.LessThanToken:
                     case SyntaxKind.NewKeyword:
                         return Tristate.False;
+                    case SyntaxKind.EndOfFileToken:
+                        return Tristate.True;
                     default:
                         if (isIdentifier()) {
                             var isMaybeTag = scanner.isMaybeTag();

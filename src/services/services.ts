@@ -1919,9 +1919,20 @@ module ts {
                 }
                 // Get scope members
                 else {
-                    isMemberCompletion = false;
                     /// TODO filter meaning based on the current context
-                    var symbolMeanings = SymbolFlags.Type | SymbolFlags.Value | SymbolFlags.Namespace;
+                    var symbolMeanings: ts.SymbolFlags;
+                    if (mappedParent.kind === 179) {
+                        if (sourceFile.jsxNamespace.kind !== SyntaxKind.Missing) {
+                            getCompletionEntriesFromSymbols(
+                                typeInfoResolver.getApparentType(typeInfoResolver.getTypeOfNode(sourceFile.jsxNamespace)).getApparentProperties(),
+                                activeCompletionSession
+                            );
+                        }
+                        symbolMeanings = ts.SymbolFlags.Function | ts.SymbolFlags.Type | ts.SymbolFlags.Namespace;
+                    } else {
+                        isMemberCompletion = false;
+                        symbolMeanings = ts.SymbolFlags.Type | ts.SymbolFlags.Value | ts.SymbolFlags.Namespace;
+                    }
                     var symbols = typeInfoResolver.getSymbolsInScope(mappedNode, symbolMeanings);
 
                     getCompletionEntriesFromSymbols(symbols, activeCompletionSession);
@@ -3819,7 +3830,7 @@ module ts {
             while (token !== SyntaxKind.EndOfFileToken);
 
             if (maybeHasJSX) {
-                fixXJSContents();
+                // TODO: fixXJSContents();
             }
 
             return result;
@@ -3885,40 +3896,6 @@ module ts {
                     }
 
                     result.entries.push({ length: length, classification: classification });
-                }
-            }
-
-            function fixXJSContents(): void {
-                var sourceFile = SourceFileObject.createSourceFileObject(
-                    'script.ts',
-                    TypeScript.ScriptSnapshot.fromString(text),
-                    ts.ScriptTarget.ES5
-                );
-
-                forEach(sourceFile.statements, function callback(node: ts.Node) {
-                    if (node.kind === SyntaxKind.XJSElement) {
-                        forEach((<XJSElement>node).children, (child: ts.Expression) => {
-                            if (child.kind === ts.SyntaxKind.StringLiteral) {
-                                var startIndex = 0;
-                                for (var startPos = offset; startIndex < result.entries.length && startPos < child.pos; startIndex++) {
-                                    startPos += result.entries[startIndex].length;
-                                }
-                                var endIndex = startIndex;
-                                for (var endPos = startPos; endIndex < result.entries.length && endPos < child.end; endIndex++) {
-                                    endPos += result.entries[endIndex].length;
-                                }
-                                result.entries.splice(startIndex, endIndex - startIndex, { length: endPos - startPos, classification: TokenClass.XJSText });
-                            } else {
-                                callback(child);
-                            }
-                        });
-                    } else {
-                        forEachChild(node, callback);
-                    }
-                });
-
-                if (result.entries[result.entries.length - 1].classification === TokenClass.XJSText) {
-                    result.finalLexState = EndOfLineState.InXJSContents;
                 }
             }
         }
