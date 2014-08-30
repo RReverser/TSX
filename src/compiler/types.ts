@@ -533,15 +533,16 @@ module ts {
         closingElement?: XJSClosingElement;
     }
 
-    export interface XJSOpeningElement extends Node {
+    export interface XJSElementTag extends Node {
         name: EntityName;
+    }
+
+    export interface XJSOpeningElement extends XJSElementTag {
         attributes: NodeArray<XJSAttribute>;
         selfClosing: boolean;
     }
 
-    export interface XJSClosingElement extends Node {
-        name: EntityName;
-    }
+    export interface XJSClosingElement extends XJSElementTag { }
 
     export interface XJSAttribute extends PropertyDeclaration { }
 

@@ -1855,10 +1855,6 @@ module ts {
                 if (mappedParent.kind === SyntaxKind.XJSAttribute) {
                     isRightOfDot = true;
                     mappedNode = mappedParent.parent;
-                } else
-                if (mappedParent.kind === SyntaxKind.XJSExpressionContainer && mappedParent.parent.kind === SyntaxKind.XJSAttribute) {
-                    isRightOfDot = true;
-                    mappedNode = mappedParent.parent.parent;
                 }
             }
 

@@ -4442,21 +4442,24 @@ module ts {
             return unknownSignature;
         }
 
+        function getNamespacedXJSName(namespace: EntityName, name: Identifier) {
+            var nsName = <QualifiedName>new (objectAllocator.getNodeConstructor(SyntaxKind.QualifiedName));
+            nsName.pos = name.pos;
+            nsName.end = name.end;
+            nsName.flags = NodeFlags.Synthetic;
+            nsName.parent = name.parent;
+            nsName.left = namespace;
+            nsName.right = name;
+            return nsName;
+        }
+
         function resolveXJSElement(node: XJSElement): Signature {
             var name = node.openingElement.name;
 
             if (name.kind === SyntaxKind.Identifier) {
                 var sourceFile = getSourceFile(node);
-                var namespace = sourceFile && sourceFile.jsxNamespace;
-                if (namespace && namespace.kind !== SyntaxKind.Missing) {
-                    var nsName = <QualifiedName>new (objectAllocator.getNodeConstructor(SyntaxKind.QualifiedName));
-                    nsName.pos = name.pos;
-                    nsName.end = name.end;
-                    nsName.flags = NodeFlags.Synthetic;
-                    nsName.parent = name.parent;
-                    nsName.left = namespace;
-                    nsName.right = <Identifier>name;
-                    var signature = resolveExactXJSElement(nsName);
+                if (sourceFile && sourceFile.jsxNamespace.kind !== SyntaxKind.Missing && name.kind === SyntaxKind.Identifier) {
+                    var signature = resolveExactXJSElement(getNamespacedXJSName(sourceFile.jsxNamespace, <Identifier>name));
                     if (signature !== unknownSignature) {
                         return signature;
                     }
@@ -6871,6 +6874,11 @@ module ts {
             return node.parent && node.parent.kind === SyntaxKind.TypeReference;
         }
 
+        function isTagName(node: EntityName) {
+            return (node.parent.kind === SyntaxKind.XJSOpeningElement || node.parent.kind === SyntaxKind.XJSClosingElement) &&
+                node.pos === (<XJSElementTag>node.parent).name.pos;
+        }
+
         function isExpression(node: Node): boolean {
             switch (node.kind) {
                 case SyntaxKind.ThisKeyword:
@@ -6898,9 +6906,9 @@ module ts {
                     return true;
                 case SyntaxKind.QualifiedName:
                     while (node.parent.kind === SyntaxKind.QualifiedName) node = node.parent;
-                    return node.parent.kind === SyntaxKind.TypeQuery;
+                    return node.parent.kind === SyntaxKind.TypeQuery || isTagName(node);
                 case SyntaxKind.Identifier:
-                    if (node.parent.kind === SyntaxKind.TypeQuery) {
+                    if (node.parent.kind === SyntaxKind.TypeQuery || isTagName(node)) {
                         return true;
                     }
                 // Fall through
@@ -7097,6 +7105,16 @@ module ts {
 
             switch (node.kind) {
                 case SyntaxKind.Identifier:
+                    if (isTagName(node)) {
+                        var sourceFile = getSourceFile(node);
+                        if (sourceFile && sourceFile.jsxNamespace.kind !== SyntaxKind.Missing) {
+                            var nsSymbol = getSymbolOfEntityName(getNamespacedXJSName(sourceFile.jsxNamespace, <Identifier>node));
+                            if (nsSymbol) {
+                                return nsSymbol;
+                            }
+                        }
+                    }
+
                 case SyntaxKind.PropertyAccess:
                 case SyntaxKind.QualifiedName:
                     return getSymbolOfEntityName(<Identifier>node);
