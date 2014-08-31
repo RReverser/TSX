@@ -3722,7 +3722,7 @@ module ts {
             var errorCountBeforeStatement = file.syntacticErrors.length;
             var statement = parseStatement();
 
-            if (inAmbientContext && file.syntacticErrors.length === errorCountBeforeStatement) {
+            if (inAmbientContext && statement.kind !== SyntaxKind.ReferenceComment && file.syntacticErrors.length === errorCountBeforeStatement) {
                 grammarErrorAtPos(statementStart, statementFirstTokenLength, Diagnostics.Statements_are_not_allowed_in_ambient_contexts);
             }
 
