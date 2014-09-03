@@ -4361,7 +4361,7 @@ module ts {
         }
 
         function resolveXJSElement(node: XJSElement): Signature {
-            var name = node.openingElement.name;
+            var name = node.openingElement.tagName;
             var links = getNodeLinks(node);
             if (name.kind === SyntaxKind.Identifier) {
                 var sourceFile = getSourceFile(node);
@@ -6823,7 +6823,7 @@ module ts {
 
         function isTagName(node: EntityName) {
             return (node.parent.kind === SyntaxKind.XJSOpeningElement || node.parent.kind === SyntaxKind.XJSClosingElement) &&
-                node.pos === (<XJSElementTag>node.parent).name.pos;
+                node.pos === (<XJSElementTag>node.parent).tagName.pos;
         }
 
         function isExpression(node: Node): boolean {

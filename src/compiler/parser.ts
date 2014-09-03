@@ -348,10 +348,10 @@ module ts {
                     children((<XJSElement>node).children) ||
                     child((<XJSElement>node).closingElement);
             case SyntaxKind.XJSOpeningElement:
-                return child((<XJSOpeningElement>node).name) ||
+                return child((<XJSOpeningElement>node).tagName) ||
                     children((<XJSOpeningElement>node).properties);
             case SyntaxKind.XJSClosingElement:
-                return child((<XJSClosingElement>node).name);
+                return child((<XJSClosingElement>node).tagName);
             case SyntaxKind.ReferenceComment:
                 return child((<ReferenceComment>node).reference);
         }
@@ -2023,7 +2023,7 @@ module ts {
                         case Tristate.Unknown:
                             return tryParse(() => {
                                 var node = parseXJSElement();
-                                if (node.openingElement.selfClosing || node.closingElement.name.kind !== SyntaxKind.Missing) {
+                                if (node.openingElement.selfClosing || node.closingElement.tagName.kind !== SyntaxKind.Missing) {
                                     return node;
                                 }
                             }, true) || parseTypeAssertion();
@@ -2112,8 +2112,8 @@ module ts {
                 node.children = parseList(ParsingContext.XJSContents, /* checkForStrictMode */false, () => parseXJSValue(/* isAttrValue */false));
                 scanner.setXJSContext(oldXJSContext);
                 node.closingElement = parseXJSClosingElement();
-                var openingName = entityNameToString(node.openingElement.name);
-                var closingName = entityNameToString(node.closingElement.name);
+                var openingName = entityNameToString(node.openingElement.tagName);
+                var closingName = entityNameToString(node.closingElement.tagName);
                 if (openingName !== closingName) {
                     grammarErrorOnNode(node.closingElement, Diagnostics.Expected_closing_tag_for_0_but_found_Slash_1, openingName, closingName);
                 }
@@ -2125,7 +2125,7 @@ module ts {
             var node = <XJSOpeningElement>createNode(SyntaxKind.XJSOpeningElement);
             var oldXJSContext = scanner.setXJSContext(XJSContext.Attributes);
             parseExpected(SyntaxKind.LessThanToken);
-            node.name = parseEntityName(false);
+            node.tagName = parseEntityName(false);
             node.properties = parseList(ParsingContext.XJSAttributes, /* checkForStrictMode */false, parseXJSAttribute);
             node.selfClosing = parseOptional(SyntaxKind.SlashToken);
             if (node.selfClosing) {
@@ -2189,9 +2189,9 @@ module ts {
             var oldXJSContext = scanner.setXJSContext(XJSContext.None);
             parseExpected(SyntaxKind.LessThanToken);
             if (parseExpected(SyntaxKind.SlashToken)) {
-                node.name = parseEntityName(false);
+                node.tagName = parseEntityName(false);
             } else {
-                node.name = createMissingNode();
+                node.tagName = createMissingNode();
             }
             scanner.setXJSContext(oldXJSContext);
             parseExpected(SyntaxKind.GreaterThanToken);
@@ -3739,14 +3739,14 @@ module ts {
         function processReferenceComment(refComment: ReferenceComment): void {
             var opening = refComment.reference.openingElement;
 
-            if (opening.name.kind !== SyntaxKind.Identifier) {
+            if (opening.tagName.kind !== SyntaxKind.Identifier) {
                 return;
             }
 
             var attrs = arrayToMap(opening.properties, (attr: XJSAttribute) => attr.name.text);
             var attr: XJSAttribute;
 
-            switch ((<Identifier>opening.name).text) {
+            switch ((<Identifier>opening.tagName).text) {
                 case 'reference':
                     if (hasProperty(attrs, 'no-default-lib')) {
                         file.hasNoDefaultLib = true;

@@ -1811,7 +1811,7 @@ module ts {
             var mappedParent = mappedNode.parent;
 
             if (mappedParent && mappedParent.parent) {
-                if (mappedParent.kind === SyntaxKind.XJSOpeningElement && (<XJSOpeningElement>mappedParent).name.getEnd() < position) {
+                if (mappedParent.kind === SyntaxKind.XJSOpeningElement && (<XJSOpeningElement>mappedParent).tagName.getEnd() < position) {
                     isRightOfDot = true;
                     mappedNode = mappedParent;
                 } else

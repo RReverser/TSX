@@ -911,7 +911,7 @@ module ts {
             function emitXJSElement(node: XJSElement) {
                 var opening = node.openingElement;
                 var hasChildren = node.children.length;
-                emit(opening.name);
+                emit(opening.tagName);
                 write("(");
                 if (!opening.properties.length) {
                     if (hasChildren) {
