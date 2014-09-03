@@ -534,7 +534,7 @@ module ts {
     }
 
     export interface XJSElementTag extends Node {
-        name: EntityName;
+        tagName: EntityName;
     }
 
     export interface XJSOpeningElement extends XJSElementTag, ObjectLiteral {
