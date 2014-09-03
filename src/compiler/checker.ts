@@ -4309,7 +4309,31 @@ module ts {
             return resolveErrorCall(node);
         }
 
-        function resolveExactXJSElement(node: XJSElement, name: EntityName): Signature {
+        function getResolvedXJSName(node: XJSElement): EntityName {
+            if (!node.resolvedName) {
+                var name = node.openingElement.tagName;
+                if (name.kind === SyntaxKind.Identifier) {
+                    var sourceFile = getSourceFile(node);
+                    if (sourceFile && sourceFile.jsxNamespace.kind !== SyntaxKind.Missing) {
+                        var nsName = <QualifiedName>new (objectAllocator.getNodeConstructor(SyntaxKind.QualifiedName));
+                        nsName.pos = name.pos;
+                        nsName.end = name.end;
+                        nsName.flags = NodeFlags.Synthetic;
+                        nsName.parent = name.parent;
+                        nsName.left = sourceFile.jsxNamespace;
+                        nsName.right = <Identifier>name;
+                        if (checkExpression(nsName) !== unknownType) {
+                            return node.resolvedName = nsName;
+                        }
+                    }
+                }
+                node.resolvedName = name;
+            }
+            return node.resolvedName;
+        }
+
+        function resolveXJSElement(node: XJSElement): Signature {
+            var name = getResolvedXJSName(node);
             var args = [<Expression>node.openingElement].concat(node.children);
             var expressionType = checkExpression(name);
             if (expressionType === unknownType) {
@@ -4358,28 +4382,6 @@ module ts {
             error(name, Diagnostics.JSX_element_should_refer_to_unambigous_constructor_or_factory);
             checkArgs(args);
             return unknownSignature;
-        }
-
-        function resolveXJSElement(node: XJSElement): Signature {
-            var name = node.openingElement.tagName;
-            var links = getNodeLinks(node);
-            if (name.kind === SyntaxKind.Identifier) {
-                var sourceFile = getSourceFile(node);
-                if (sourceFile && sourceFile.jsxNamespace.kind !== SyntaxKind.Missing) {
-                    var nsName = <QualifiedName>new (objectAllocator.getNodeConstructor(SyntaxKind.QualifiedName));
-                    nsName.pos = name.pos;
-                    nsName.end = name.end;
-                    nsName.flags = NodeFlags.Synthetic;
-                    nsName.parent = name.parent;
-                    nsName.left = sourceFile.jsxNamespace;
-                    nsName.right = <Identifier>name;
-                    var signature = resolveExactXJSElement(node, nsName);
-                    if (signature !== unknownSignature) {
-                        return signature;
-                    }
-                }
-            }
-            return resolveExactXJSElement(node, name);
         }
 
         function getResolvedSignature(node: CallExpression): Signature;
@@ -7007,7 +7009,7 @@ module ts {
             }
 
             if (isTagName(entityName)) {
-                // TODO: Tag name
+                entityName = getResolvedXJSName(<XJSElement>entityName.parent.parent);
             }
 
             if (isExpression(entityName)) {
