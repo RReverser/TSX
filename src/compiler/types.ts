@@ -531,6 +531,7 @@ module ts {
         openingElement: XJSOpeningElement;
         children: NodeArray<Expression>;
         closingElement?: XJSClosingElement;
+        resolvedName?: EntityName;
     }
 
     export interface XJSElementTag extends Node {
