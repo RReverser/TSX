@@ -4129,8 +4129,8 @@ module ts {
 
         function checkApplicableSignatureArgs(args: Expression[], signature: Signature, relation: Map<boolean>, excludeArgument: boolean[], reportErrors: boolean) {
             if (args) {
-                for (var i = 0; i < node.arguments.length; i++) {
-                    var arg = node.arguments[i];
+                for (var i = 0; i < args.length; i++) {
+                    var arg = args[i];
                     var paramType = getTypeAtPosition(signature, i);
                     // String literals get string literal types unless we're reporting errors
                     var argType = arg.kind === SyntaxKind.StringLiteral && !reportErrors ?
