@@ -486,10 +486,10 @@ module ts {
 
     function createClosingTagRegex(unicodeStartCodes: number[], unicodePartCodes: number[]): RegExp {
         return new RegExp(
-            "<\s*\/\s*(" +
+            "<\\s*\/\\s*(" +
             createUnicodeCharRegexSource(unicodeStartCodes, "A-Za-z$_") +
             createUnicodeCharRegexSource(unicodePartCodes, "A-Za-z0-9$_\\-\\.") +
-            "*)\s*(>|$)",
+            "*)\\s*(>|$)",
             "g"
         );
     }
