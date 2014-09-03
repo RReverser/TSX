@@ -6923,6 +6923,7 @@ module ts {
                 case SyntaxKind.IndexedAccess:
                 case SyntaxKind.CallExpression:
                 case SyntaxKind.NewExpression:
+                case SyntaxKind.XJSElement:
                 case SyntaxKind.TypeAssertion:
                 case SyntaxKind.ParenExpression:
                 case SyntaxKind.FunctionExpression:
@@ -6932,7 +6933,6 @@ module ts {
                 case SyntaxKind.BinaryExpression:
                 case SyntaxKind.ConditionalExpression:
                 case SyntaxKind.OmittedExpression:
-                case SyntaxKind.XJSElement:
                     return true;
                 case SyntaxKind.QualifiedName:
                     while (node.parent.kind === SyntaxKind.QualifiedName) node = node.parent;
@@ -7087,10 +7087,12 @@ module ts {
 
             if (isRightSideOfQualifiedNameOrPropertyAccess(entityName)) {
                 entityName = entityName.parent;
-            }
-
+            } else
             if (isTagName(entityName)) {
                 entityName = getResolvedXJSName(<XJSElement>entityName.parent.parent);
+            } else
+            if (entityName.kind === SyntaxKind.Identifier && entityName.parent.kind === SyntaxKind.XJSAttribute) {
+                return getTypeOfNode(entityName.parent.parent).symbol.members[(<Identifier>entityName).text];
             }
 
             if (isExpression(entityName)) {
@@ -7215,8 +7217,8 @@ module ts {
                 return declaredType !== unknownType ? declaredType : getTypeOfSymbol(symbol);
             }
 
-            if (node.kind === SyntaxKind.XJSOpeningElement && node.parent) {
-                var signature = resolveXJSElement(<XJSElement>node.parent);
+            if (node.kind === SyntaxKind.XJSOpeningElement) {
+                var signature = getResolvedSignature(<XJSElement>node.parent);
                 if (signature !== unknownSignature) {
                     var param = signature.parameters[0];
                     if (param) {
