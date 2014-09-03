@@ -910,27 +910,17 @@ module ts {
 
             function emitXJSElement(node: XJSElement) {
                 var opening = node.openingElement;
+                var hasChildren = node.children.length;
                 emit(opening.name);
                 write("(");
-                if (!opening.attributes.length) {
-                    if (node.children.length) {
+                if (!opening.properties.length) {
+                    if (hasChildren) {
                         write("null");
                     }
+                } else {
+                    emitObjectLiteral(opening);
                 }
-                else if (node.flags & NodeFlags.MultiLine) {
-                    write("{");
-                    increaseIndent();
-                    emitMultiLineList(opening.attributes);
-                    decreaseIndent();
-                    writeLine();
-                    write("}");
-                }
-                else {
-                    write("{ ");
-                    emitCommaList(opening.attributes);
-                    write(" }");
-                }
-                if (node.children.length) {
+                if (hasChildren) {
                     write(", ");
                     emitCommaList(node.children);
                 }
@@ -2246,14 +2236,6 @@ module ts {
                 function isPinnedOrTripleSlashComment(comment: Comment) {
                     if (currentSourceFile.text.charCodeAt(comment.pos + 1) === CharacterCodes.asterisk) {
                         return currentSourceFile.text.charCodeAt(comment.pos + 2) === CharacterCodes.exclamation;
-                    }
-                    // Verify this is /// comment, but do the regexp match only when we first can find /// in the comment text 
-                    // so that we don't end up computing comment string and doing match for all // comments
-                    else if (currentSourceFile.text.charCodeAt(comment.pos + 1) === CharacterCodes.slash &&
-                        comment.pos + 2 < comment.end &&
-                        currentSourceFile.text.charCodeAt(comment.pos + 2) === CharacterCodes.slash &&
-                        currentSourceFile.text.substring(comment.pos, comment.end).match(fullTripleSlashReferencePathRegEx)) {
-                        return true;
                     }
                 }
 

@@ -159,8 +159,6 @@ module ts {
         }
     }
 
-    export var fullTripleSlashReferencePathRegEx = /^(\/\/\/\s*<reference\s+path\s*=\s*)('|")(.+?)\2.*?\/>/
-
     // Invokes a callback for each child of the given node. The 'cbNode' callback is invoked for all child nodes
     // stored in properties. If a 'cbNodes' callback is specified, it is invoked for embedded arrays; otherwise,
     // embedded arrays are flattened and the 'cbNode' callback is invoked for each element. If a callback returns
@@ -353,7 +351,7 @@ module ts {
                     child((<XJSElement>node).closingElement);
             case SyntaxKind.XJSOpeningElement:
                 return child((<XJSOpeningElement>node).name) ||
-                    children((<XJSOpeningElement>node).attributes);
+                    children((<XJSOpeningElement>node).properties);
             case SyntaxKind.XJSClosingElement:
                 return child((<XJSClosingElement>node).name);
             case SyntaxKind.ReferenceComment:
@@ -2249,7 +2247,7 @@ module ts {
             var oldXJSContext = scanner.setXJSContext(XJSContext.Attributes);
             parseExpected(SyntaxKind.LessThanToken);
             node.name = parseEntityName(false);
-            node.attributes = parseList(ParsingContext.XJSAttributes, /* checkForStrictMode */false, parseXJSAttribute);
+            node.properties = parseList(ParsingContext.XJSAttributes, /* checkForStrictMode */false, parseXJSAttribute);
             node.selfClosing = parseOptional(SyntaxKind.SlashToken);
             if (node.selfClosing) {
                 scanner.setXJSContext(oldXJSContext);
@@ -3867,14 +3865,15 @@ module ts {
                 return;
             }
 
-            var attrs = arrayToMap(opening.attributes, attr => attr.name.text);
+            var attrs = arrayToMap(opening.properties, (attr: XJSAttribute) => attr.name.text);
+            var attr: XJSAttribute;
 
             switch ((<Identifier>opening.name).text) {
                 case 'reference':
                     if (hasProperty(attrs, 'no-default-lib')) {
                         file.hasNoDefaultLib = true;
                     }
-                    var attr = getProperty(attrs, 'path');
+                    attr = getProperty(attrs, 'path');
                     if (attr && attr.initializer && attr.initializer.kind === SyntaxKind.StringLiteral) {
                         file.referencedFiles.push({
                             pos: attr.initializer.pos,
@@ -3885,14 +3884,14 @@ module ts {
                     break;
 
                 case 'amd-dependency':
-                    var attr = getProperty(attrs, 'path');
+                    attr = getProperty(attrs, 'path');
                     if (attr && attr.initializer && attr.initializer.kind === SyntaxKind.StringLiteral) {
                         file.amdDependencies.push((<LiteralExpression>attr.initializer).text);
                     }
                     break;
 
                 case 'jsx':
-                    var attr = getProperty(attrs, 'namespace');
+                    attr = getProperty(attrs, 'namespace');
                     if (attr && attr.initializer && attr.initializer.kind === SyntaxKind.XJSExpressionContainer) {
                         file.jsxNamespace = (<XJSExpressionContainer>attr.initializer).expression;
                     }
