@@ -532,8 +532,7 @@ module ts {
         name: EntityName;
     }
 
-    export interface XJSOpeningElement extends XJSElementTag {
-        attributes: NodeArray<XJSAttribute>;
+    export interface XJSOpeningElement extends XJSElementTag, ObjectLiteral {
         selfClosing: boolean;
     }
 
