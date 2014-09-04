@@ -796,7 +796,11 @@ module ts {
                         write(".");
                     }
                 }
-                write(getSourceTextOfLocalNode(node));
+                var text = getSourceTextOfLocalNode(node);
+                if (node.parent.kind === SyntaxKind.XJSAttribute && text.indexOf("-") >= 0) {
+                    text = "\"" + text + "\"";
+                }
+                write(text);
             }
 
             function emitThis(node: Node) {
@@ -911,6 +915,9 @@ module ts {
             function emitXJSElement(node: XJSElement) {
                 var opening = node.openingElement;
                 var hasChildren = node.children.length;
+                if (resolver.isXJSConstructor(node)) {
+                    write("new ");
+                }
                 emit(resolver.getResolvedXJSName(node));
                 write("(");
                 if (!opening.properties.length) {
