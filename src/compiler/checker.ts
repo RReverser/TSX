@@ -6919,6 +6919,7 @@ module ts {
                 case SyntaxKind.RegularExpressionLiteral:
                 case SyntaxKind.ArrayLiteral:
                 case SyntaxKind.ObjectLiteral:
+                case SyntaxKind.XJSOpeningElement:
                 case SyntaxKind.PropertyAccess:
                 case SyntaxKind.IndexedAccess:
                 case SyntaxKind.CallExpression:
@@ -7217,16 +7218,6 @@ module ts {
                 return declaredType !== unknownType ? declaredType : getTypeOfSymbol(symbol);
             }
 
-            if (node.kind === SyntaxKind.XJSOpeningElement) {
-                var signature = getResolvedSignature(<XJSElement>node.parent);
-                if (signature !== unknownSignature) {
-                    var param = signature.parameters[0];
-                    if (param) {
-                        return getTypeOfSymbol(param);
-                    }
-                }
-            }
-
             return unknownType;
         }
 
@@ -7453,7 +7444,8 @@ module ts {
                 writeReturnTypeOfSignatureDeclaration: writeReturnTypeOfSignatureDeclaration,
                 writeSymbol: writeSymbolToTextWriter,
                 isSymbolAccessible: isSymbolAccessible,
-                isImportDeclarationEntityNameReferenceDeclarationVisibile: isImportDeclarationEntityNameReferenceDeclarationVisibile
+                isImportDeclarationEntityNameReferenceDeclarationVisibile: isImportDeclarationEntityNameReferenceDeclarationVisibile,
+                getResolvedXJSName: getResolvedXJSName
             };
             checkProgram();
             return emitFiles(resolver);
