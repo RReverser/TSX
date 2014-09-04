@@ -28,7 +28,7 @@ module ts {
         hasPrecedingLineBreak(): boolean;
         isIdentifier(): boolean;
         isReservedWord(): boolean;
-        isMaybeTag(): boolean;
+        isMaybeTag(tagName: string): boolean;
         reScanGreaterToken(): SyntaxKind;
         reScanSlashToken(): SyntaxKind;
         scan(): SyntaxKind;
@@ -471,6 +471,7 @@ module ts {
 
     // from https://github.com/jrburke/requirejs
     var reComments = /(\/\*([\s\S]*?)\*\/|([^:]|^)\/\/(.*)$)/mg;
+    var reSpaces = /\s+/g;
 
     function createUnicodeCharEscape(code: number): string {
         var str = code.toString(16);
@@ -485,13 +486,10 @@ module ts {
     }
 
     function createClosingTagRegex(unicodeStartCodes: number[], unicodePartCodes: number[]): RegExp {
-        return new RegExp(
-            "<\\s*\/\\s*(" +
-            createUnicodeCharRegexSource(unicodeStartCodes, "A-Za-z$_") +
-            createUnicodeCharRegexSource(unicodePartCodes, "A-Za-z0-9$_\\-\\.") +
-            "*)\\s*(>|$)",
-            "g"
-        );
+        var startChar = createUnicodeCharRegexSource(unicodeStartCodes, "A-Za-z$_");
+        var partChar = createUnicodeCharRegexSource(unicodePartCodes, "A-Za-z0-9$_");
+        var identifier = startChar + partChar + "*";
+        return new RegExp("<\/(" + identifier + "(\\." + identifier + ")*)(>|$)", "g");
     }
 
     var reClosingTagsES3 = createClosingTagRegex(unicodeES3IdentifierStart, unicodeES3IdentifierPart);
@@ -510,13 +508,13 @@ module ts {
 
         // Populating maybeTags with found closing tags.
         function findMaybeTags(): void {
-            var code = text.replace(reComments, ""),
+            var code = text.replace(reComments, "").replace(reSpaces, ""),
                 reClosingTags = languageVersion === ScriptTarget.ES3 ? reClosingTagsES3 : reClosingTagsES5,
                 match: RegExpExecArray,
                 maybeTags: { [name: string]: boolean } = {};
 
             while (match = reClosingTags.exec(code)) {
-                maybeTags[match[1] + (match[2] ? "$" : "")] = true;
+                maybeTags[match[1] + (match[3] ? "$" : "")] = true;
             }
 
             reMaybeTag = new RegExp("^(" + Object.keys(maybeTags).map(name => name.replace(".", "\\.")).join("|") + ")");
@@ -1154,7 +1152,7 @@ module ts {
             hasPrecedingLineBreak: () => precedingLineBreak,
             isIdentifier: () => token === SyntaxKind.Identifier || token > SyntaxKind.LastReservedWord,
             isReservedWord: () => token >= SyntaxKind.FirstReservedWord && token <= SyntaxKind.LastReservedWord,
-            isMaybeTag: () => reMaybeTag.test(tokenValue),
+            isMaybeTag: (tagName: string) => reMaybeTag.test(tagName),
             reScanGreaterToken: reScanGreaterToken,
             reScanSlashToken: reScanSlashToken,
             scan: scan,

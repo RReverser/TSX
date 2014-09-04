@@ -866,10 +866,10 @@ module ts {
             return result;
         }
 
-        function lookAhead<T>(callback: () => T): T {
+        function lookAhead<T>(callback: () => T, allowErrors?: boolean): T {
             var result: T;
             scanner.tryScan(() => {
-                result = lookAheadHelper(callback, /*alwaysResetState:*/ true);
+                result = lookAheadHelper(callback, /*alwaysResetState:*/ true, allowErrors);
 
                 // Returning false here indicates to the scanner that it should always jump
                 // back to where it started.  This makes sense as 'lookahead' acts as if 
@@ -2207,20 +2207,16 @@ module ts {
                     case SyntaxKind.EndOfFileToken:
                         return Tristate.True;
                     default:
-                        if (isIdentifier()) {
-                            var isMaybeTag = scanner.isMaybeTag();
-                            if (nextToken() === SyntaxKind.SlashToken || token >= SyntaxKind.Identifier || token === SyntaxKind.EndOfFileToken) {
-                                return Tristate.True;
-                            } else if (token === SyntaxKind.GreaterThanToken) {
-                                return isMaybeTag ? Tristate.Unknown : Tristate.False;
-                            } else {
-                                return Tristate.False;
-                            }
+                        var isMaybeTag = scanner.isMaybeTag(entityNameToString(parseEntityName(false)));
+                        if (token === SyntaxKind.SlashToken || token >= SyntaxKind.Identifier || token === SyntaxKind.EndOfFileToken) {
+                            return Tristate.True;
+                        } else if (token === SyntaxKind.GreaterThanToken) {
+                            return isMaybeTag ? Tristate.Unknown : Tristate.False;
                         } else {
                             return Tristate.False;
                         }
                 }
-            });
+            }, true);
         }
 
         function parseXJSElement(): XJSElement {
@@ -2295,7 +2291,7 @@ module ts {
         function entityNameToString(entity: EntityName): string {
             switch (entity.kind) {
                 case SyntaxKind.QualifiedName:
-                    return entityNameToString((<QualifiedName>entity).left) + '.' + identifierToString((<QualifiedName>entity).right);
+                    return entityNameToString((<QualifiedName>entity).left) + '.' + entityNameToString((<QualifiedName>entity).right);
 
                 case SyntaxKind.Identifier:
                     return (<Identifier>entity).text;
