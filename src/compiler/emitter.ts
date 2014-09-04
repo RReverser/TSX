@@ -911,12 +911,10 @@ module ts {
             function emitXJSElement(node: XJSElement) {
                 var opening = node.openingElement;
                 var hasChildren = node.children.length;
-                emit(opening.tagName);
+                emit(resolver.getResolvedXJSName(node));
                 write("(");
                 if (!opening.properties.length) {
-                    if (hasChildren) {
-                        write("null");
-                    }
+                    write("null");
                 } else {
                     emitObjectLiteral(opening);
                 }
