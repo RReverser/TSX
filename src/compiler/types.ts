@@ -527,6 +527,7 @@ module ts {
         children: NodeArray<Expression>;
         closingElement?: XJSClosingElement;
         resolvedName?: EntityName;
+        resolvedIsConstructor?: boolean;
     }
 
     export interface XJSElementTag extends Node {
@@ -705,6 +706,7 @@ module ts {
         isSymbolAccessible(symbol: Symbol, enclosingDeclaration: Node, meaning: SymbolFlags): SymbolAccessiblityResult;
         isImportDeclarationEntityNameReferenceDeclarationVisibile(entityName: EntityName): SymbolAccessiblityResult;
         getResolvedXJSName(node: XJSElement): EntityName;
+        isXJSConstructor(node: XJSElement): boolean;
     }
 
     export enum SymbolFlags {

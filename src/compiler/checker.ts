@@ -4310,26 +4310,29 @@ module ts {
         }
 
         function getResolvedXJSName(node: XJSElement): EntityName {
-            if (!node.resolvedName) {
-                var name = node.openingElement.tagName;
-                if (name.kind === SyntaxKind.Identifier) {
-                    var sourceFile = getSourceFile(node);
-                    if (sourceFile && sourceFile.jsxNamespace.kind !== SyntaxKind.Missing) {
-                        var nsName = <QualifiedName>new (objectAllocator.getNodeConstructor(SyntaxKind.QualifiedName));
-                        nsName.pos = name.pos;
-                        nsName.end = name.end;
-                        nsName.flags = NodeFlags.Synthetic;
-                        nsName.parent = name.parent;
-                        nsName.left = sourceFile.jsxNamespace;
-                        nsName.right = <Identifier>name;
-                        if (checkExpression(nsName) !== unknownType) {
-                            return node.resolvedName = nsName;
-                        }
-                    }
-                }
-                node.resolvedName = name;
+            if (node.resolvedName) {
+                return node.resolvedName;
             }
-            return node.resolvedName;
+            var name = node.openingElement.tagName;
+            if (name.kind === SyntaxKind.Identifier) {
+                var sourceFile = getSourceFile(node);
+                if (sourceFile && getPropertyOfType(checkExpression(sourceFile.jsxNamespace), (<Identifier>name).text)) {
+                    var nsName = <QualifiedName>new (objectAllocator.getNodeConstructor(SyntaxKind.QualifiedName));
+                    nsName.pos = name.pos;
+                    nsName.end = name.end;
+                    nsName.flags = NodeFlags.Synthetic;
+                    nsName.parent = name.parent;
+                    nsName.left = sourceFile.jsxNamespace;
+                    nsName.right = <Identifier>name;
+                    return node.resolvedName = nsName;
+                }
+            }
+            return node.resolvedName = name;
+        }
+
+        function isXJSConstructor(node: XJSElement): boolean {
+            getResolvedSignature(node);
+            return node.resolvedIsConstructor;
         }
 
         function resolveXJSElement(node: XJSElement): Signature {
@@ -4374,6 +4377,7 @@ module ts {
                         error(name, Diagnostics.JSX_element_should_refer_to_unambigous_constructor_or_factory);
                     }
                     var signature = factorySignatures[0];
+                    node.resolvedIsConstructor = resolved.constructSignatures.length > 0;
                     checkApplicableSignatureArgs(args, signature, assignableRelation, undefined, /*reportErrors*/ true);
                     return signature;
                 }
@@ -7364,7 +7368,8 @@ module ts {
                 writeSymbol: writeSymbolToTextWriter,
                 isSymbolAccessible: isSymbolAccessible,
                 isImportDeclarationEntityNameReferenceDeclarationVisibile: isImportDeclarationEntityNameReferenceDeclarationVisibile,
-                getResolvedXJSName: getResolvedXJSName
+                getResolvedXJSName: getResolvedXJSName,
+                isXJSConstructor: isXJSConstructor
             };
             checkProgram();
             return emitFiles(resolver);
