@@ -3249,7 +3249,6 @@ module ts {
             var lastTokenOrCommentEnd = 0;
             var lastToken = SyntaxKind.Unknown;
             var inUnterminatedMultiLineComment = false;
-            var maybeHasJSX = false;
 
             // If we're in a string literal, then prepend: "\
             // (and a newline).  That way when we lex we'll think we're still in a string literal.
@@ -3275,7 +3274,6 @@ module ts {
                 case EndOfLineState.InJSXContents:
                     text = "<_ _>\n" + text;
                     offset = 6;
-                    maybeHasJSX = true;
                     break;
             }
 
@@ -3297,8 +3295,8 @@ module ts {
                 }
                 else if (lastToken === SyntaxKind.DotToken) {
                     token = SyntaxKind.Identifier;
-                } else if (lastToken === SyntaxKind.LessThanToken && scanner.isIdentifier()) {
-                    maybeHasJSX = true;
+                } else if (lastToken === SyntaxKind.LessThanToken && scanner.isJSXElement() === Tristate.True) {
+                    // TODO: Implement classification for most-likely-element case.
                 }
 
                 lastToken = token;
@@ -3306,10 +3304,6 @@ module ts {
                 processToken();
             }
             while (token !== SyntaxKind.EndOfFileToken);
-
-            if (maybeHasJSX) {
-                // TODO: fixJSXContents();
-            }
 
             return result;
 
