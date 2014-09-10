@@ -203,11 +203,11 @@ module ts {
         ImportDeclaration,
         ExportAssignment,
         // JSX
-        XJSExpressionContainer,
-        XJSElement,
-        XJSOpeningElement,
-        XJSClosingElement,
-        XJSAttribute,
+        JSXExpressionContainer,
+        JSXElement,
+        JSXOpeningElement,
+        JSXClosingElement,
+        JSXAttribute,
         ReferenceComment,
         // Enum
         EnumMember,
@@ -525,30 +525,30 @@ module ts {
         exportName: Identifier;
     }
 
-    export interface XJSExpressionContainer extends ParenExpression { }
+    export interface JSXExpressionContainer extends ParenExpression { }
 
-    export interface XJSElement extends Expression {
-        openingElement: XJSOpeningElement;
+    export interface JSXElement extends Expression {
+        openingElement: JSXOpeningElement;
         children: NodeArray<Expression>;
-        closingElement?: XJSClosingElement;
+        closingElement?: JSXClosingElement;
         resolvedName?: EntityName;
         resolvedIsConstructor?: boolean;
     }
 
-    export interface XJSElementTag extends Node {
+    export interface JSXElementTag extends Node {
         tagName: EntityName;
     }
 
-    export interface XJSOpeningElement extends XJSElementTag, ObjectLiteral {
+    export interface JSXOpeningElement extends JSXElementTag, ObjectLiteral {
         selfClosing: boolean;
     }
 
-    export interface XJSClosingElement extends XJSElementTag { }
+    export interface JSXClosingElement extends JSXElementTag { }
 
-    export interface XJSAttribute extends PropertyDeclaration { }
+    export interface JSXAttribute extends PropertyDeclaration { }
 
     export interface ReferenceComment extends Statement {
-        reference: XJSElement;
+        reference: JSXElement;
     }
 
     export interface FileReference extends TextRange {
@@ -708,8 +708,8 @@ module ts {
         writeSymbol(symbol: Symbol, enclosingDeclaration: Node, meaning: SymbolFlags, writer: TextWriter): void;
         isSymbolAccessible(symbol: Symbol, enclosingDeclaration: Node, meaning: SymbolFlags): SymbolAccessiblityResult;
         isImportDeclarationEntityNameReferenceDeclarationVisibile(entityName: EntityName): SymbolAccessiblityResult;
-        getResolvedXJSName(node: XJSElement): EntityName;
-        isXJSConstructor(node: XJSElement): boolean;
+        getResolvedJSXName(node: JSXElement): EntityName;
+        isJSXConstructor(node: JSXElement): boolean;
     }
 
     export enum SymbolFlags {

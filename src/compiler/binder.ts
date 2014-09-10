@@ -213,7 +213,7 @@ module ts {
                     }
                 case SyntaxKind.TypeLiteral:
                 case SyntaxKind.ObjectLiteral:
-                case SyntaxKind.XJSOpeningElement:
+                case SyntaxKind.JSXOpeningElement:
                 case SyntaxKind.InterfaceDeclaration:
                     declareSymbol(container.symbol.members, container.symbol, node, symbolKind, symbolExcludes);
                     break;
@@ -274,7 +274,7 @@ module ts {
                     break;
                 case SyntaxKind.Property:
                 case SyntaxKind.PropertyAssignment:
-                case SyntaxKind.XJSAttribute:
+                case SyntaxKind.JSXAttribute:
                     bindDeclaration(<Declaration>node, SymbolFlags.Property, SymbolFlags.PropertyExcludes);
                     break;
                 case SyntaxKind.EnumMember:
@@ -308,7 +308,7 @@ module ts {
                     bindAnonymousDeclaration(node, SymbolFlags.TypeLiteral, "__type");
                     break;
                 case SyntaxKind.ObjectLiteral:
-                case SyntaxKind.XJSOpeningElement:
+                case SyntaxKind.JSXOpeningElement:
                     bindAnonymousDeclaration(node, SymbolFlags.ObjectLiteral, "__object");
                     break;
                 case SyntaxKind.FunctionExpression:

@@ -797,7 +797,7 @@ module ts {
                     }
                 }
                 var text = getSourceTextOfLocalNode(node);
-                if (node.parent.kind === SyntaxKind.XJSAttribute && text.indexOf("-") >= 0) {
+                if (node.parent.kind === SyntaxKind.JSXAttribute && text.indexOf("-") >= 0) {
                     text = "\"" + text + "\"";
                 }
                 write(text);
@@ -912,13 +912,13 @@ module ts {
                 }
             }
 
-            function emitXJSElement(node: XJSElement) {
+            function emitJSXElement(node: JSXElement) {
                 var opening = node.openingElement;
                 var hasChildren = node.children.length;
-                if (resolver.isXJSConstructor(node)) {
+                if (resolver.isJSXConstructor(node)) {
                     write("new ");
                 }
-                emit(resolver.getResolvedXJSName(node));
+                emit(resolver.getResolvedJSXName(node));
                 write("(");
                 if (!opening.properties.length) {
                     write("null");
@@ -2035,14 +2035,14 @@ module ts {
                     case SyntaxKind.ObjectLiteral:
                         return emitObjectLiteral(<ObjectLiteral>node);
                     case SyntaxKind.PropertyAssignment:
-                    case SyntaxKind.XJSAttribute:
+                    case SyntaxKind.JSXAttribute:
                         return emitPropertyAssignment(<PropertyDeclaration>node);
                     case SyntaxKind.PropertyAccess:
                         return emitPropertyAccess(<PropertyAccess>node);
                     case SyntaxKind.IndexedAccess:
                         return emitIndexedAccess(<IndexedAccess>node);
-                    case SyntaxKind.XJSElement:
-                        return emitXJSElement(<XJSElement>node);
+                    case SyntaxKind.JSXElement:
+                        return emitJSXElement(<JSXElement>node);
                     case SyntaxKind.CallExpression:
                         return emitCallExpression(<CallExpression>node);
                     case SyntaxKind.NewExpression:
@@ -2050,7 +2050,7 @@ module ts {
                     case SyntaxKind.TypeAssertion:
                         return emit((<TypeAssertion>node).operand);
                     case SyntaxKind.ParenExpression:
-                    case SyntaxKind.XJSExpressionContainer:
+                    case SyntaxKind.JSXExpressionContainer:
                         return emitParenExpression(<ParenExpression>node);
                     case SyntaxKind.FunctionDeclaration:
                     case SyntaxKind.FunctionExpression:
