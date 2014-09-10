@@ -3,6 +3,12 @@
 
 module ts {
 
+    export enum Tristate {
+        False,
+        True,
+        Unknown
+    }
+
     export interface TextRange {
         pos: number;
         end: number;

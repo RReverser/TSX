@@ -432,12 +432,6 @@ module ts {
         Count                    // Number of parsing contexts
     }
 
-    enum Tristate {
-        False,
-        True,
-        Unknown
-    }
-
     function parsingContextErrors(context: ParsingContext): DiagnosticMessage {
         switch (context) {
             case ParsingContext.SourceElements:         return Diagnostics.Declaration_or_statement_expected;
@@ -2016,7 +2010,7 @@ module ts {
                     }
                     return makeUnaryExpression(SyntaxKind.PrefixOperator, pos, operator, operand);
                 case SyntaxKind.LessThanToken:
-                    switch (isJSXElement()) {
+                    switch (scanner.isJSXElement()) {
                         case Tristate.True:
                             return parseJSXElement();
 
@@ -2061,41 +2055,6 @@ module ts {
             }
 
             return expr;
-        }
-
-        // Distingushing JSX tags from type cast operators is pretty tricky, especially when we have error
-        // recovery option and want to be as close to what user wanted to write as possible, so this check
-        // contains bunch of complex nested conditions.
-
-        function isJSXElement(): Tristate {
-            return lookAhead(() => {
-                scanner.setJSXContext(JSXContext.None);
-                parseExpected(SyntaxKind.LessThanToken);
-                switch (token) {
-                    case SyntaxKind.AnyKeyword:
-                    case SyntaxKind.StringKeyword:
-                    case SyntaxKind.NumberKeyword:
-                    case SyntaxKind.BooleanKeyword:
-                    case SyntaxKind.VoidKeyword:
-                    case SyntaxKind.TypeOfKeyword:
-                    case SyntaxKind.OpenBraceToken:
-                    case SyntaxKind.OpenParenToken:
-                    case SyntaxKind.LessThanToken:
-                    case SyntaxKind.NewKeyword:
-                        return Tristate.False;
-                    case SyntaxKind.EndOfFileToken:
-                        return Tristate.True;
-                    default:
-                        var isMaybeTag = scanner.isMaybeTag(entityNameToString(parseEntityName(false)));
-                        if (token === SyntaxKind.SlashToken || token >= SyntaxKind.Identifier || token === SyntaxKind.EndOfFileToken) {
-                            return Tristate.True;
-                        } else if (token === SyntaxKind.GreaterThanToken) {
-                            return isMaybeTag ? Tristate.Unknown : Tristate.False;
-                        } else {
-                            return Tristate.False;
-                        }
-                }
-            }, true);
         }
 
         function parseJSXElement(): JSXElement {

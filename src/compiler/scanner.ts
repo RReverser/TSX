@@ -28,10 +28,10 @@ module ts {
         hasPrecedingLineBreak(): boolean;
         isIdentifier(): boolean;
         isReservedWord(): boolean;
-        isMaybeTag(tagName: string): boolean;
         reScanGreaterToken(): SyntaxKind;
         reScanSlashToken(): SyntaxKind;
         scan(): SyntaxKind;
+        isJSXElement(): Tristate;
         getJSXContext(): JSXContext;
         setJSXContext(context: JSXContext): JSXContext;
         setText(text: string): void;
@@ -1124,6 +1124,50 @@ module ts {
             return result;
         }
 
+        function scanEntityName(): string {
+            if (token < SyntaxKind.Identifier) {
+                return '';
+            }
+            for (var entityName = tokenValue; scan() === SyntaxKind.DotToken;) {
+                entityName += '.' + (scan(), tokenValue);
+            }
+            return entityName;
+        }
+
+        function isJSXElement(): Tristate {
+            var result: Tristate;
+            tryScan(() => {
+                setJSXContext(JSXContext.None);
+                switch (scan()) {
+                    case SyntaxKind.AnyKeyword:
+                    case SyntaxKind.StringKeyword:
+                    case SyntaxKind.NumberKeyword:
+                    case SyntaxKind.BooleanKeyword:
+                    case SyntaxKind.VoidKeyword:
+                    case SyntaxKind.TypeOfKeyword:
+                    case SyntaxKind.OpenBraceToken:
+                    case SyntaxKind.OpenParenToken:
+                    case SyntaxKind.LessThanToken:
+                    case SyntaxKind.NewKeyword:
+                        result = Tristate.False;
+                        break;
+                    case SyntaxKind.EndOfFileToken:
+                        result = Tristate.True;
+                        break;
+                    default:
+                        var isMaybeTag = reMaybeTag.test(scanEntityName());
+                        if (token === SyntaxKind.SlashToken || token >= SyntaxKind.Identifier || token === SyntaxKind.EndOfFileToken) {
+                            result = Tristate.True;
+                        } else if (token === SyntaxKind.GreaterThanToken) {
+                            result = isMaybeTag ? Tristate.Unknown : Tristate.False;
+                        } else {
+                            result = Tristate.False;
+                        }
+                }
+            });
+            return result;
+        }
+
         function setText(newText: string) {
             text = newText || "";
             len = text.length;
@@ -1152,10 +1196,10 @@ module ts {
             hasPrecedingLineBreak: () => precedingLineBreak,
             isIdentifier: () => token === SyntaxKind.Identifier || token > SyntaxKind.LastReservedWord,
             isReservedWord: () => token >= SyntaxKind.FirstReservedWord && token <= SyntaxKind.LastReservedWord,
-            isMaybeTag: (tagName: string) => reMaybeTag.test(tagName),
             reScanGreaterToken: reScanGreaterToken,
             reScanSlashToken: reScanSlashToken,
             scan: scan,
+            isJSXElement: isJSXElement,
             getJSXContext: () => jsxContext,
             setJSXContext: setJSXContext,
             setText: setText,
