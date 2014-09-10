@@ -3295,7 +3295,7 @@ module ts {
                 }
                 else if (lastToken === SyntaxKind.DotToken) {
                     token = SyntaxKind.Identifier;
-                } else if (lastToken === SyntaxKind.LessThanToken && scanner.isJSXElement() === Tristate.True) {
+                } else if (token === SyntaxKind.LessThanToken && scanner.isJSXElement() === Tristate.True) {
                     // TODO: Implement classification for most-likely-element case.
                 }
 
