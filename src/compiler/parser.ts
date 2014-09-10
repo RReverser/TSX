@@ -191,7 +191,7 @@ module ts {
                     child((<ParameterDeclaration>node).initializer);
             case SyntaxKind.Property:
             case SyntaxKind.PropertyAssignment:
-            case SyntaxKind.XJSAttribute:
+            case SyntaxKind.JSXAttribute:
                 return child((<PropertyDeclaration>node).name) ||
                     child((<PropertyDeclaration>node).type) ||
                     child((<PropertyDeclaration>node).initializer);
@@ -341,17 +341,17 @@ module ts {
                     child((<ImportDeclaration>node).externalModuleName);
             case SyntaxKind.ExportAssignment:
                 return child((<ExportAssignment>node).exportName);
-            case SyntaxKind.XJSExpressionContainer:
-                return child((<XJSExpressionContainer>node).expression);
-            case SyntaxKind.XJSElement:
-                return child((<XJSElement>node).openingElement) ||
-                    children((<XJSElement>node).children) ||
-                    child((<XJSElement>node).closingElement);
-            case SyntaxKind.XJSOpeningElement:
-                return child((<XJSOpeningElement>node).tagName) ||
-                    children((<XJSOpeningElement>node).properties);
-            case SyntaxKind.XJSClosingElement:
-                return child((<XJSClosingElement>node).tagName);
+            case SyntaxKind.JSXExpressionContainer:
+                return child((<JSXExpressionContainer>node).expression);
+            case SyntaxKind.JSXElement:
+                return child((<JSXElement>node).openingElement) ||
+                    children((<JSXElement>node).children) ||
+                    child((<JSXElement>node).closingElement);
+            case SyntaxKind.JSXOpeningElement:
+                return child((<JSXOpeningElement>node).tagName) ||
+                    children((<JSXOpeningElement>node).properties);
+            case SyntaxKind.JSXClosingElement:
+                return child((<JSXClosingElement>node).tagName);
             case SyntaxKind.ReferenceComment:
                 return child((<ReferenceComment>node).reference);
         }
@@ -426,8 +426,8 @@ module ts {
         Parameters,              // Parameters in parameter list
         TypeParameters,          // Type parameters in type parameter list
         TypeArguments,           // Type arguments in type argument list
-        XJSAttributes,           // JSX attributes in JSX opening element
-        XJSContents,             // JSX inner contents
+        JSXAttributes,           // JSX attributes in JSX opening element
+        JSXContents,             // JSX inner contents
         ReferenceComments,       // Reference tag comments
         Count                    // Number of parsing contexts
     }
@@ -456,8 +456,8 @@ module ts {
             case ParsingContext.Parameters:             return Diagnostics.Parameter_declaration_expected;
             case ParsingContext.TypeParameters:         return Diagnostics.Type_parameter_declaration_expected;
             case ParsingContext.TypeArguments:          return Diagnostics.Type_argument_expected;
-            case ParsingContext.XJSAttributes:          return Diagnostics.JSX_attribute_was_expected;
-            case ParsingContext.XJSContents:            return Diagnostics.JSX_value_should_be_either_string_or_expression_wrapped_into_braces;
+            case ParsingContext.JSXAttributes:          return Diagnostics.JSX_attribute_was_expected;
+            case ParsingContext.JSXContents:            return Diagnostics.JSX_value_should_be_either_string_or_expression_wrapped_into_braces;
         }
     };
 
@@ -927,9 +927,9 @@ module ts {
                     return isParameter();
                 case ParsingContext.TypeArguments:
                     return isType();
-                case ParsingContext.XJSAttributes:
+                case ParsingContext.JSXAttributes:
                     return token >= SyntaxKind.Identifier || token === SyntaxKind.EqualsToken;
-                case ParsingContext.XJSContents:
+                case ParsingContext.JSXContents:
                     return token === SyntaxKind.StringLiteral || token === SyntaxKind.OpenBraceToken || token === SyntaxKind.LessThanToken;
                 case ParsingContext.ReferenceComments:
                     return token === SyntaxKind.SlashSlashSlashBeforeLessThanToken;
@@ -974,11 +974,11 @@ module ts {
                 case ParsingContext.TypeArguments:
                     // Tokens other than '>' are here for better error recovery
                     return token === SyntaxKind.GreaterThanToken || token === SyntaxKind.OpenParenToken;
-                case ParsingContext.XJSAttributes:
+                case ParsingContext.JSXAttributes:
                     // Tokens other than '/' and '>' are here for better error recovery
                     return token < SyntaxKind.Identifier && token !== SyntaxKind.EqualsToken;
-                case ParsingContext.XJSContents:
-                    return token === SyntaxKind.LessThanToken && lookAhead(() => (scanner.setXJSContext(XJSContext.None), nextToken() === SyntaxKind.SlashToken));
+                case ParsingContext.JSXContents:
+                    return token === SyntaxKind.LessThanToken && lookAhead(() => (scanner.setJSXContext(JSXContext.None), nextToken() === SyntaxKind.SlashToken));
                 case ParsingContext.ReferenceComments:
                     return token !== SyntaxKind.SlashSlashSlashBeforeLessThanToken;
             }
@@ -2016,13 +2016,13 @@ module ts {
                     }
                     return makeUnaryExpression(SyntaxKind.PrefixOperator, pos, operator, operand);
                 case SyntaxKind.LessThanToken:
-                    switch (isXJSElement()) {
+                    switch (isJSXElement()) {
                         case Tristate.True:
-                            return parseXJSElement();
+                            return parseJSXElement();
 
                         case Tristate.Unknown:
                             return tryParse(() => {
-                                var node = parseXJSElement();
+                                var node = parseJSXElement();
                                 if (node.openingElement.selfClosing || node.closingElement.tagName.kind !== SyntaxKind.Missing) {
                                     return node;
                                 }
@@ -2067,9 +2067,9 @@ module ts {
         // recovery option and want to be as close to what user wanted to write as possible, so this check
         // contains bunch of complex nested conditions.
 
-        function isXJSElement(): Tristate {
+        function isJSXElement(): Tristate {
             return lookAhead(() => {
-                scanner.setXJSContext(XJSContext.None);
+                scanner.setJSXContext(JSXContext.None);
                 parseExpected(SyntaxKind.LessThanToken);
                 switch (token) {
                     case SyntaxKind.AnyKeyword:
@@ -2098,16 +2098,16 @@ module ts {
             }, true);
         }
 
-        function parseXJSElement(): XJSElement {
-            var node = <XJSElement>createNode(SyntaxKind.XJSElement);
-            var oldXJSContext = scanner.getXJSContext();
-            node.openingElement = parseXJSOpeningElement();
+        function parseJSXElement(): JSXElement {
+            var node = <JSXElement>createNode(SyntaxKind.JSXElement);
+            var oldJSXContext = scanner.getJSXContext();
+            node.openingElement = parseJSXOpeningElement();
             if (node.openingElement.selfClosing) {
                 node.children = createMissingList<Expression>();
             } else {
-                node.children = parseList(ParsingContext.XJSContents, /* checkForStrictMode */false, () => parseXJSValue(/* isAttrValue */false));
-                scanner.setXJSContext(oldXJSContext);
-                node.closingElement = parseXJSClosingElement();
+                node.children = parseList(ParsingContext.JSXContents, /* checkForStrictMode */false, () => parseJSXValue(/* isAttrValue */false));
+                scanner.setJSXContext(oldJSXContext);
+                node.closingElement = parseJSXClosingElement();
                 var openingName = entityNameToString(node.openingElement.tagName);
                 var closingName = entityNameToString(node.closingElement.tagName);
                 if (openingName !== closingName) {
@@ -2117,39 +2117,39 @@ module ts {
             return finishNode(node);
         }
 
-        function parseXJSOpeningElement(): XJSOpeningElement {
-            var node = <XJSOpeningElement>createNode(SyntaxKind.XJSOpeningElement);
-            var oldXJSContext = scanner.setXJSContext(XJSContext.Attributes);
+        function parseJSXOpeningElement(): JSXOpeningElement {
+            var node = <JSXOpeningElement>createNode(SyntaxKind.JSXOpeningElement);
+            var oldJSXContext = scanner.setJSXContext(JSXContext.Attributes);
             parseExpected(SyntaxKind.LessThanToken);
             node.tagName = parseEntityName(false);
-            node.properties = parseList(ParsingContext.XJSAttributes, /* checkForStrictMode */false, parseXJSAttribute);
+            node.properties = parseList(ParsingContext.JSXAttributes, /* checkForStrictMode */false, parseJSXAttribute);
             node.selfClosing = parseOptional(SyntaxKind.SlashToken);
             if (node.selfClosing) {
-                scanner.setXJSContext(oldXJSContext);
+                scanner.setJSXContext(oldJSXContext);
                 parseExpected(SyntaxKind.GreaterThanToken);
             } else {
                 if (token !== SyntaxKind.GreaterThanToken) {
                     scanner.setTextPos(scanner.getStartPos());
                     error(Diagnostics._0_expected, tokenToString(SyntaxKind.GreaterThanToken));
                 }
-                scanner.setXJSContext(XJSContext.Contents);
+                scanner.setJSXContext(JSXContext.Contents);
                 nextToken();
             }
             return finishNode(node);
         }
 
-        function parseXJSAttribute(): XJSAttribute {
-            var node = <XJSAttribute>createNode(SyntaxKind.XJSAttribute);
+        function parseJSXAttribute(): JSXAttribute {
+            var node = <JSXAttribute>createNode(SyntaxKind.JSXAttribute);
             node.name = parseIdentifierName();
             if (parseOptional(SyntaxKind.EqualsToken)) {
-                node.initializer = parseXJSValue(/* isAttrValue */true);
+                node.initializer = parseJSXValue(/* isAttrValue */true);
             }
             return finishNode(node);
         }
 
-        function parseXJSValue(isAttrValue: boolean): Expression {
+        function parseJSXValue(isAttrValue: boolean): Expression {
             if (token === SyntaxKind.OpenBraceToken) {
-                var container = parseXJSExpressionContainer();
+                var container = parseJSXExpressionContainer();
                 if (isAttrValue && container.expression.kind === SyntaxKind.Missing) {
                     grammarErrorOnNode(container, Diagnostics.JSX_attribute_value_can_t_be_empty_expression);
                 }
@@ -2161,7 +2161,7 @@ module ts {
                 return node;
             }
             var expr = parseUnaryExpression();
-            if (expr.kind !== SyntaxKind.StringLiteral && expr.kind !== SyntaxKind.XJSElement) {
+            if (expr.kind !== SyntaxKind.StringLiteral && expr.kind !== SyntaxKind.JSXElement) {
                 grammarErrorOnNode(expr, Diagnostics.JSX_value_should_be_either_string_or_expression_wrapped_into_braces);
             }
             return expr;
@@ -2180,26 +2180,26 @@ module ts {
             }
         }
 
-        function parseXJSClosingElement(): XJSClosingElement {
-            var node = <XJSClosingElement>createNode(SyntaxKind.XJSClosingElement);
-            var oldXJSContext = scanner.setXJSContext(XJSContext.None);
+        function parseJSXClosingElement(): JSXClosingElement {
+            var node = <JSXClosingElement>createNode(SyntaxKind.JSXClosingElement);
+            var oldJSXContext = scanner.setJSXContext(JSXContext.None);
             parseExpected(SyntaxKind.LessThanToken);
             if (parseExpected(SyntaxKind.SlashToken)) {
                 node.tagName = parseEntityName(false);
             } else {
                 node.tagName = createMissingNode();
             }
-            scanner.setXJSContext(oldXJSContext);
+            scanner.setJSXContext(oldJSXContext);
             parseExpected(SyntaxKind.GreaterThanToken);
             return finishNode(node);
         }
 
-        function parseXJSExpressionContainer(): XJSExpressionContainer {
-            var node = <XJSExpressionContainer>createNode(SyntaxKind.XJSExpressionContainer);
-            var oldXJSContext = scanner.setXJSContext(XJSContext.None);
+        function parseJSXExpressionContainer(): JSXExpressionContainer {
+            var node = <JSXExpressionContainer>createNode(SyntaxKind.JSXExpressionContainer);
+            var oldJSXContext = scanner.setJSXContext(JSXContext.None);
             parseExpected(SyntaxKind.OpenBraceToken);
             node.expression = token !== SyntaxKind.CloseBraceToken ? parseExpression() : createMissingNode();
-            scanner.setXJSContext(oldXJSContext);
+            scanner.setJSXContext(oldJSXContext);
             parseExpected(SyntaxKind.CloseBraceToken);
             return finishNode(node);
         }
@@ -3726,7 +3726,7 @@ module ts {
         function parseReferenceComment(): ReferenceComment {
             var node = <ReferenceComment>createNode(SyntaxKind.ReferenceComment);
             parseExpected(SyntaxKind.SlashSlashSlashBeforeLessThanToken);
-            node.reference = parseXJSElement();
+            node.reference = parseJSXElement();
             finishNode(node);
             processReferenceComment(node);
             return node;
@@ -3739,8 +3739,8 @@ module ts {
                 return;
             }
 
-            var attrs = arrayToMap(opening.properties, (attr: XJSAttribute) => attr.name.text);
-            var attr: XJSAttribute;
+            var attrs = arrayToMap(opening.properties, (attr: JSXAttribute) => attr.name.text);
+            var attr: JSXAttribute;
 
             switch ((<Identifier>opening.tagName).text) {
                 case 'reference':
@@ -3766,8 +3766,8 @@ module ts {
 
                 case 'jsx':
                     attr = getProperty(attrs, 'namespace');
-                    if (attr && attr.initializer && attr.initializer.kind === SyntaxKind.XJSExpressionContainer) {
-                        file.jsxNamespace = (<XJSExpressionContainer>attr.initializer).expression;
+                    if (attr && attr.initializer && attr.initializer.kind === SyntaxKind.JSXExpressionContainer) {
+                        file.jsxNamespace = (<JSXExpressionContainer>attr.initializer).expression;
                     }
                     break;
             }

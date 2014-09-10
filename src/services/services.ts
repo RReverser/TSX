@@ -694,7 +694,7 @@ module ts {
         InSingleQuoteStringLiteral,
         InDoubleQuoteStringLiteral,
         EndingWithDotToken,
-        InXJSContents,
+        InJSXContents,
     }
 
     export enum TokenClass {
@@ -707,7 +707,7 @@ module ts {
         NumberLiteral,
         StringLiteral,
         RegExpLiteral,
-        XJSText,
+        JSXText,
     }
 
     export interface ClassificationResult {
@@ -1814,11 +1814,11 @@ module ts {
                 mappedParent = mappedParent.parent;
             }
 
-            if (mappedParent.kind === SyntaxKind.XJSOpeningElement && (<XJSOpeningElement>mappedParent).tagName.getEnd() < position) {
+            if (mappedParent.kind === SyntaxKind.JSXOpeningElement && (<JSXOpeningElement>mappedParent).tagName.getEnd() < position) {
                 isRightOfDot = true;
                 mappedNode = mappedParent;
             } else
-            if (mappedParent.kind === SyntaxKind.XJSAttribute) {
+            if (mappedParent.kind === SyntaxKind.JSXAttribute) {
                 isRightOfDot = true;
                 mappedNode = mappedParent.parent;
             }
@@ -3272,7 +3272,7 @@ module ts {
                 case EndOfLineState.EndingWithDotToken:
                     lastToken = SyntaxKind.DotToken;
                     break;
-                case EndOfLineState.InXJSContents:
+                case EndOfLineState.InJSXContents:
                     text = "<_ _>\n" + text;
                     offset = 6;
                     maybeHasJSX = true;
@@ -3308,7 +3308,7 @@ module ts {
             while (token !== SyntaxKind.EndOfFileToken);
 
             if (maybeHasJSX) {
-                // TODO: fixXJSContents();
+                // TODO: fixJSXContents();
             }
 
             return result;

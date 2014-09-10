@@ -2502,7 +2502,7 @@ module ts {
                 case SyntaxKind.ArrowFunction:
                     return !(<FunctionExpression>node).typeParameters && !forEach((<FunctionExpression>node).parameters, p => p.type);
                 case SyntaxKind.ObjectLiteral:
-                case SyntaxKind.XJSOpeningElement:
+                case SyntaxKind.JSXOpeningElement:
                     return forEach((<ObjectLiteral>node).properties, p =>
                         p.kind === SyntaxKind.PropertyAssignment && isContextSensitiveExpression((<PropertyDeclaration>p).initializer));
                 case SyntaxKind.ArrayLiteral:
@@ -4309,7 +4309,7 @@ module ts {
             return resolveErrorCall(node);
         }
 
-        function getResolvedXJSName(node: XJSElement): EntityName {
+        function getResolvedJSXName(node: JSXElement): EntityName {
             if (node.resolvedName) {
                 return node.resolvedName;
             }
@@ -4330,13 +4330,13 @@ module ts {
             return node.resolvedName = name;
         }
 
-        function isXJSConstructor(node: XJSElement): boolean {
+        function isJSXConstructor(node: JSXElement): boolean {
             getResolvedSignature(node);
             return node.resolvedIsConstructor;
         }
 
-        function resolveXJSElement(node: XJSElement): Signature {
-            var name = getResolvedXJSName(node);
+        function resolveJSXElement(node: JSXElement): Signature {
+            var name = getResolvedJSXName(node);
             var args = [<Expression>node.openingElement].concat(node.children);
             var expressionType = checkExpression(name);
             if (expressionType === unknownType) {
@@ -4389,7 +4389,7 @@ module ts {
         }
 
         function getResolvedSignature(node: CallExpression): Signature;
-        function getResolvedSignature(node: XJSElement): Signature;
+        function getResolvedSignature(node: JSXElement): Signature;
         function getResolvedSignature(node: Expression): Signature {
             var links = getNodeLinks(node);
             if (!links.resolvedSignature) {
@@ -4402,8 +4402,8 @@ module ts {
                         links.resolvedSignature = resolveNewExpression(<NewExpression>node);
                         break;
 
-                    case SyntaxKind.XJSElement:
-                        links.resolvedSignature = resolveXJSElement(<XJSElement>node);
+                    case SyntaxKind.JSXElement:
+                        links.resolvedSignature = resolveJSXElement(<JSXElement>node);
                         break;
                 }
             }
@@ -4440,7 +4440,7 @@ module ts {
             return targetType;
         }
 
-        function checkXJSElement(node: XJSElement): Type {
+        function checkJSXElement(node: JSXElement): Type {
             return getReturnTypeOfSignature(getResolvedSignature(node));
         }
 
@@ -4963,7 +4963,7 @@ module ts {
                 case SyntaxKind.ArrayLiteral:
                     return checkArrayLiteral(<ArrayLiteral>node, contextualMapper);
                 case SyntaxKind.ObjectLiteral:
-                case SyntaxKind.XJSOpeningElement:
+                case SyntaxKind.JSXOpeningElement:
                     return checkObjectLiteral(<ObjectLiteral>node, contextualMapper);
                 case SyntaxKind.PropertyAccess:
                     return checkPropertyAccess(<PropertyAccess>node);
@@ -4972,12 +4972,12 @@ module ts {
                 case SyntaxKind.CallExpression:
                 case SyntaxKind.NewExpression:
                     return checkCallExpression(<CallExpression>node);
-                case SyntaxKind.XJSElement:
-                    return checkXJSElement(<XJSElement>node);
+                case SyntaxKind.JSXElement:
+                    return checkJSXElement(<JSXElement>node);
                 case SyntaxKind.TypeAssertion:
                     return checkTypeAssertion(<TypeAssertion>node);
                 case SyntaxKind.ParenExpression:
-                case SyntaxKind.XJSExpressionContainer:
+                case SyntaxKind.JSXExpressionContainer:
                     return checkExpression((<ParenExpression>node).expression);
                 case SyntaxKind.FunctionExpression:
                 case SyntaxKind.ArrowFunction:
@@ -6828,8 +6828,8 @@ module ts {
         }
 
         function isTagName(node: EntityName) {
-            return (node.parent.kind === SyntaxKind.XJSOpeningElement || node.parent.kind === SyntaxKind.XJSClosingElement) &&
-                node.pos === (<XJSElementTag>node.parent).tagName.pos;
+            return (node.parent.kind === SyntaxKind.JSXOpeningElement || node.parent.kind === SyntaxKind.JSXClosingElement) &&
+                node.pos === (<JSXElementTag>node.parent).tagName.pos;
         }
 
         function isExpression(node: Node): boolean {
@@ -6846,7 +6846,7 @@ module ts {
                 case SyntaxKind.IndexedAccess:
                 case SyntaxKind.CallExpression:
                 case SyntaxKind.NewExpression:
-                case SyntaxKind.XJSElement:
+                case SyntaxKind.JSXElement:
                 case SyntaxKind.TypeAssertion:
                 case SyntaxKind.ParenExpression:
                 case SyntaxKind.FunctionExpression:
@@ -7012,9 +7012,9 @@ module ts {
                 entityName = entityName.parent;
             } else
             if (isTagName(entityName)) {
-                entityName = getResolvedXJSName(<XJSElement>entityName.parent.parent);
+                entityName = getResolvedJSXName(<JSXElement>entityName.parent.parent);
             } else
-            if (entityName.kind === SyntaxKind.Identifier && entityName.parent.kind === SyntaxKind.XJSAttribute) {
+            if (entityName.kind === SyntaxKind.Identifier && entityName.parent.kind === SyntaxKind.JSXAttribute) {
                 return getTypeOfNode(entityName.parent.parent).symbol.members[(<Identifier>entityName).text];
             }
 
@@ -7140,8 +7140,8 @@ module ts {
                 return declaredType !== unknownType ? declaredType : getTypeOfSymbol(symbol);
             }
 
-            if (node.kind === SyntaxKind.XJSOpeningElement) {
-                var signature = getResolvedSignature(<XJSElement>node.parent);
+            if (node.kind === SyntaxKind.JSXOpeningElement) {
+                var signature = getResolvedSignature(<JSXElement>node.parent);
                 var param = signature.parameters[0];
                 if (param) {
                     return getTypeOfSymbol(param);
@@ -7375,8 +7375,8 @@ module ts {
                 writeSymbol: writeSymbolToTextWriter,
                 isSymbolAccessible: isSymbolAccessible,
                 isImportDeclarationEntityNameReferenceDeclarationVisibile: isImportDeclarationEntityNameReferenceDeclarationVisibile,
-                getResolvedXJSName: getResolvedXJSName,
-                isXJSConstructor: isXJSConstructor
+                getResolvedJSXName: getResolvedJSXName,
+                isJSXConstructor: isJSXConstructor
             };
             checkProgram();
             return emitFiles(resolver);
