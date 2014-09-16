@@ -1658,7 +1658,7 @@ module ts {
             return <TypeNode>createMissingNode();
         }
 
-        function isType(): boolean {
+        function isNonIdentifierType(): boolean {
             switch (token) {
                 case SyntaxKind.AnyKeyword:
                 case SyntaxKind.StringKeyword:
@@ -1679,8 +1679,12 @@ module ts {
                         return token === SyntaxKind.CloseParenToken || isParameter();
                     });
                 default:
-                    return isIdentifier();
+                    return false;
             }
+        }
+
+        function isType(): boolean {
+            return isNonIdentifierType() || isIdentifier();
         }
 
         function parseType(): TypeNode {
@@ -2192,29 +2196,26 @@ module ts {
             return lookAhead(() => {
                 scanner.setJSXContext(JSXContext.None);
                 parseExpected(SyntaxKind.LessThanToken);
-                switch (token) {
-                    case SyntaxKind.AnyKeyword:
-                    case SyntaxKind.StringKeyword:
-                    case SyntaxKind.NumberKeyword:
-                    case SyntaxKind.BooleanKeyword:
-                    case SyntaxKind.VoidKeyword:
-                    case SyntaxKind.TypeOfKeyword:
-                    case SyntaxKind.OpenBraceToken:
-                    case SyntaxKind.OpenParenToken:
-                    case SyntaxKind.LessThanToken:
-                    case SyntaxKind.NewKeyword:
-                        return Tristate.False;
-                    case SyntaxKind.EndOfFileToken:
+                if (isNonIdentifierType()) {
+                    return Tristate.False;
+                } else if (token === SyntaxKind.EndOfFileToken) {
+                    return Tristate.True;
+                } else {
+                    var isMaybeTag = scanner.isMaybeTag(entityNameToString(parseEntityName(false)));
+                    if (token === SyntaxKind.SlashToken || token >= SyntaxKind.Identifier || token === SyntaxKind.EndOfFileToken) {
                         return Tristate.True;
-                    default:
-                        var isMaybeTag = scanner.isMaybeTag(entityNameToString(parseEntityName(false)));
-                        if (token === SyntaxKind.SlashToken || token >= SyntaxKind.Identifier || token === SyntaxKind.EndOfFileToken) {
+                    } else if (token === SyntaxKind.GreaterThanToken) {
+                        nextToken();
+                        if (token === SyntaxKind.OpenBraceToken || scanner.hasPrecedingLineBreak() || token === SyntaxKind.EndOfFileToken) {
                             return Tristate.True;
-                        } else if (token === SyntaxKind.GreaterThanToken) {
-                            return isMaybeTag ? Tristate.Unknown : Tristate.False;
+                        } else if (isMaybeTag) {
+                            return Tristate.Unknown;
                         } else {
                             return Tristate.False;
                         }
+                    } else {
+                        return Tristate.False;
+                    }
                 }
             }, true);
         }
