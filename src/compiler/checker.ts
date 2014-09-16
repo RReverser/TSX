@@ -4493,6 +4493,8 @@ module ts {
         function getResolvedSignature(node: Expression): Signature {
             var links = getNodeLinks(node);
             if (!links.resolvedSignature) {
+                // Required to prevent infinite loop.
+                links.resolvedSignature = anySignature;
                 switch (node.kind) {
                     case SyntaxKind.CallExpression:
                         links.resolvedSignature = resolveCallExpression(<CallExpression>node);
