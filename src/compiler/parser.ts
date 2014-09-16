@@ -2193,6 +2193,9 @@ module ts {
         // contains bunch of complex nested conditions.
 
         function isJSXElement(): Tristate {
+            if (scanner.getJSXContext() !== JSXContext.None) {
+                return Tristate.True;
+            }
             return lookAhead(() => {
                 scanner.setJSXContext(JSXContext.None);
                 parseExpected(SyntaxKind.LessThanToken);
@@ -2203,7 +2206,11 @@ module ts {
                 } else {
                     var isMaybeTag = scanner.isMaybeTag(entityNameToString(parseEntityName(false)));
                     if (token === SyntaxKind.SlashToken || token >= SyntaxKind.Identifier || token === SyntaxKind.EndOfFileToken) {
-                        return Tristate.True;
+                        if (token === SyntaxKind.ExtendsKeyword || token === SyntaxKind.ImplementsKeyword) {
+                            return Tristate.Unknown;
+                        } else {
+                            return Tristate.True;
+                        }
                     } else if (token === SyntaxKind.GreaterThanToken) {
                         nextToken();
                         if (token === SyntaxKind.OpenBraceToken || scanner.hasPrecedingLineBreak() || token === SyntaxKind.EndOfFileToken) {
