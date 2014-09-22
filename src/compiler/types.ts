@@ -208,7 +208,6 @@ module ts {
         JSXOpeningElement,
         JSXClosingElement,
         JSXAttribute,
-        ReferenceComment,
         // Enum
         EnumMember,
         // Top-level nodes
@@ -546,10 +545,6 @@ module ts {
     export interface JSXClosingElement extends JSXElementTag { }
 
     export interface JSXAttribute extends PropertyDeclaration { }
-
-    export interface ReferenceComment extends Statement {
-        reference: JSXElement;
-    }
 
     export interface FileReference extends TextRange {
         filename: string;

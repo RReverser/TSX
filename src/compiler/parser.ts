@@ -159,6 +159,8 @@ module ts {
         }
     }
 
+    export var fullTripleSlashReferencePathRegEx = /^(\/\/\/\s*<reference\s+path\s*=\s*)('|")(.+?)\2.*?\/>/
+
     // Invokes a callback for each child of the given node. The 'cbNode' callback is invoked for all child nodes
     // stored in properties. If a 'cbNodes' callback is specified, it is invoked for embedded arrays; otherwise,
     // embedded arrays are flattened and the 'cbNode' callback is invoked for each element. If a callback returns
@@ -354,8 +356,6 @@ module ts {
                     children((<JSXOpeningElement>node).properties);
             case SyntaxKind.JSXClosingElement:
                 return child((<JSXClosingElement>node).tagName);
-            case SyntaxKind.ReferenceComment:
-                return child((<ReferenceComment>node).reference);
         }
     }
 
@@ -532,7 +532,6 @@ module ts {
         TupleElementTypes,       // Element types in tuple element type list
         JSXAttributes,           // JSX attributes in JSX opening element
         JSXContents,             // JSX inner contents
-        ReferenceComments,       // Reference tag comments
         Count                    // Number of parsing contexts
     }
 
@@ -1037,8 +1036,6 @@ module ts {
                     return token >= SyntaxKind.Identifier || token === SyntaxKind.EqualsToken;
                 case ParsingContext.JSXContents:
                     return token === SyntaxKind.StringLiteral || token === SyntaxKind.OpenBraceToken || token === SyntaxKind.LessThanToken;
-                case ParsingContext.ReferenceComments:
-                    return token === SyntaxKind.SlashSlashSlashBeforeLessThanToken;
             }
 
             Debug.fail("Non-exhaustive case in 'isListElement'.");
@@ -1086,8 +1083,6 @@ module ts {
                     return token < SyntaxKind.Identifier && token !== SyntaxKind.EqualsToken;
                 case ParsingContext.JSXContents:
                     return token === SyntaxKind.LessThanToken && lookAhead(() => (scanner.setJSXContext(JSXContext.None), nextToken() === SyntaxKind.SlashToken));
-                case ParsingContext.ReferenceComments:
-                    return token !== SyntaxKind.SlashSlashSlashBeforeLessThanToken;
             }
         }
 
@@ -3055,7 +3050,6 @@ module ts {
                 case SyntaxKind.ThrowKeyword:
                 case SyntaxKind.TryKeyword:
                 case SyntaxKind.DebuggerKeyword:
-                case SyntaxKind.SlashSlashSlashBeforeLessThanToken:
                 // 'catch' and 'finally' do not actually indicate that the code is part of a statement,
                 // however, we say they are here so that we may gracefully parse them and error later.
                 case SyntaxKind.CatchKeyword:
@@ -3120,8 +3114,6 @@ module ts {
                     return parseTryStatement();
                 case SyntaxKind.DebuggerKeyword:
                     return parseDebuggerStatement();
-                case SyntaxKind.SlashSlashSlashBeforeLessThanToken:
-                    return parseReferenceComment();
                 default:
                     if (isLabel()) {
                         return parseLabelledStatement();
@@ -3846,24 +3838,16 @@ module ts {
             var errorCountBeforeStatement = file.syntacticErrors.length;
             var statement = parseStatement();
 
-            if (inAmbientContext && statement.kind !== SyntaxKind.ReferenceComment && file.syntacticErrors.length === errorCountBeforeStatement) {
+            if (inAmbientContext && file.syntacticErrors.length === errorCountBeforeStatement) {
                 grammarErrorAtPos(statementStart, statementFirstTokenLength, Diagnostics.Statements_are_not_allowed_in_ambient_contexts);
             }
 
             return statement;
         }
 
-        function parseReferenceComment(): ReferenceComment {
-            var node = <ReferenceComment>createNode(SyntaxKind.ReferenceComment);
+        function processReferenceComment(): void {
             parseExpected(SyntaxKind.SlashSlashSlashBeforeLessThanToken);
-            node.reference = parseJSXElement();
-            finishNode(node);
-            processReferenceComment(node);
-            return node;
-        }
-
-        function processReferenceComment(refComment: ReferenceComment): void {
-            var opening = refComment.reference.openingElement;
+            var opening = parseJSXElement().openingElement;
 
             if (opening.tagName.kind !== SyntaxKind.Identifier) {
                 return;
@@ -3903,6 +3887,15 @@ module ts {
             }
         }
 
+        function processReferenceComments() {
+            scanner.setJSXContext(JSXContext.ReferenceComments);
+            nextToken();
+            while (token === SyntaxKind.SlashSlashSlashBeforeLessThanToken) {
+                processReferenceComment();
+            }
+            scanner.setJSXContext(JSXContext.None);
+        }
+
         function getExternalModuleIndicator() {
             return forEach(file.statements, node =>
                 node.flags & NodeFlags.Export
@@ -3928,7 +3921,7 @@ module ts {
         file.referencedFiles = [];
         file.amdDependencies = [];
         file.jsxNamespace = createMissingNode();
-        nextToken();
+        processReferenceComments();
         file.statements = parseList(ParsingContext.SourceElements, /*checkForStrictMode*/ true, parseSourceElement);
         file.externalModuleIndicator = getExternalModuleIndicator();
         file.nodeCount = nodeCount;

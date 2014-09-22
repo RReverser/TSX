@@ -723,6 +723,7 @@ module ts {
         InSingleQuoteStringLiteral,
         InDoubleQuoteStringLiteral,
         EndingWithDotToken,
+        InReferenceComments,
         InJSXContents,
     }
 
@@ -3769,7 +3770,7 @@ module ts {
             var lastTokenOrCommentEnd = 0;
             var lastToken = SyntaxKind.Unknown;
             var inUnterminatedMultiLineComment = false;
-            var maybeHasJSX = false;
+            var jsxContext = JSXContext.None;
 
             // If we're in a string literal, then prepend: "\
             // (and a newline).  That way when we lex we'll think we're still in a string literal.
@@ -3792,10 +3793,10 @@ module ts {
                 case EndOfLineState.EndingWithDotToken:
                     lastToken = SyntaxKind.DotToken;
                     break;
+                case EndOfLineState.InReferenceComments:
+                    jsxContext = JSXContext.ReferenceComments;
                 case EndOfLineState.InJSXContents:
-                    text = "<_ _>\n" + text;
-                    offset = 6;
-                    maybeHasJSX = true;
+                    jsxContext = JSXContext.Contents;
                     break;
             }
 
@@ -3805,6 +3806,7 @@ module ts {
             };
 
             scanner = createScanner(ScriptTarget.ES5, text, onError, processComment);
+            scanner.setJSXContext(jsxContext);
 
             var token = SyntaxKind.Unknown;
             do {
@@ -3817,8 +3819,6 @@ module ts {
                 }
                 else if (lastToken === SyntaxKind.DotToken) {
                     token = SyntaxKind.Identifier;
-                } else if (lastToken === SyntaxKind.LessThanToken && scanner.isIdentifier()) {
-                    maybeHasJSX = true;
                 }
 
                 lastToken = token;
@@ -3826,10 +3826,6 @@ module ts {
                 processToken();
             }
             while (token !== SyntaxKind.EndOfFileToken);
-
-            if (maybeHasJSX) {
-                // TODO: fixJSXContents();
-            }
 
             return result;
 
