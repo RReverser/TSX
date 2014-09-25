@@ -14,7 +14,6 @@ module ts {
 
     export enum JSXContext {
         None,
-        ReferenceComments,
         Attributes,
         Contents
     }
@@ -851,14 +850,6 @@ module ts {
                         // Single-line comment
                         if (text.charCodeAt(pos + 1) === CharacterCodes.slash) {
                             pos += 2;
-                            if (jsxContext === JSXContext.ReferenceComments && text.charCodeAt(pos) === CharacterCodes.slash) {
-                                do {
-                                    ch = text.charCodeAt(++pos);
-                                } while (pos < len && isWhiteSpace(ch) && !isLineBreak(ch));
-                                if (ch === CharacterCodes.lessThan) {
-                                    return pos = tokenPos + 3, token = SyntaxKind.SlashSlashSlashBeforeLessThanToken;
-                                }
-                            }
                             while (pos < len) {
                                 if (isLineBreak(text.charCodeAt(pos))) {
                                     break;

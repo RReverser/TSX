@@ -3845,11 +3845,16 @@ module ts {
             return statement;
         }
 
-        function processReferenceComment(): void {
-            parseExpected(SyntaxKind.SlashSlashSlashBeforeLessThanToken);
+        function processReferenceComment(comment: TextRange): void {
+            scanner.setTextPos(comment.pos + 3);
+
+            if (nextToken() !== SyntaxKind.LessThanToken) {
+                return;
+            }
+
             var opening = parseJSXElement().openingElement;
 
-            if (opening.tagName.kind !== SyntaxKind.Identifier) {
+            if (lookAheadMode === LookAheadMode.Error || opening.tagName.kind !== SyntaxKind.Identifier) {
                 return;
             }
 
@@ -3888,12 +3893,14 @@ module ts {
         }
 
         function processReferenceComments() {
-            scanner.setJSXContext(JSXContext.ReferenceComments);
+            var comments = commentRanges = [];
             nextToken();
-            while (token === SyntaxKind.SlashSlashSlashBeforeLessThanToken) {
-                processReferenceComment();
-            }
-            scanner.setJSXContext(JSXContext.None);
+            commentRanges = undefined;
+            forEach(comments, comment => {
+                if (sourceText.substr(comment.pos, 3) === '///') {
+                    lookAhead(() => processReferenceComment(comment));
+                }
+            });
         }
 
         function getExternalModuleIndicator() {

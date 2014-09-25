@@ -3793,8 +3793,6 @@ module ts {
                 case EndOfLineState.EndingWithDotToken:
                     lastToken = SyntaxKind.DotToken;
                     break;
-                case EndOfLineState.InReferenceComments:
-                    jsxContext = JSXContext.ReferenceComments;
                 case EndOfLineState.InJSXContents:
                     jsxContext = JSXContext.Contents;
                     break;
