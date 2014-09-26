@@ -191,7 +191,7 @@
         "category": "Error",
         "code": 1079
     },
-    "Invalid 'reference' directive syntax.": {
+    "Invalid '{0}' directive syntax.": {
         "category": "Error",
         "code": 1084
     },

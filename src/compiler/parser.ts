@@ -3845,60 +3845,76 @@ module ts {
             return statement;
         }
 
-        function processReferenceComment(comment: TextRange): void {
-            scanner.setTextPos(comment.pos + 3);
+        var directiveHandlers: Map<(attrs: Map<JSXAttribute>) => boolean> = {
+            'reference': attrs => {
+                var counter = 0;
+                if (hasProperty(attrs, 'no-default-lib')) {
+                    file.hasNoDefaultLib = true;
+                    counter++;
+                }
+                var attr = getProperty(attrs, 'path');
+                var expr = attr && <LiteralExpression>attr.initializer;
+                if (expr && expr.kind === SyntaxKind.StringLiteral) {
+                    file.referencedFiles.push({
+                        pos: expr.pos,
+                        end: expr.end,
+                        filename: expr.text
+                    });
+                    counter++;
+                }
+                return counter > 0;
+            },
 
-            if (nextToken() !== SyntaxKind.LessThanToken) {
-                return;
+            'amd-dependency': attrs => {
+                var attr = getProperty(attrs, 'path');
+                var expr = attr && <LiteralExpression>attr.initializer;
+                if (expr && expr.kind === SyntaxKind.StringLiteral) {
+                    file.amdDependencies.push(expr.text);
+                    return true;
+                }
+                return false;
+            },
+
+            'jsx': attrs => {
+                var attr = getProperty(attrs, 'path');
+                var container = attr && <JSXExpressionContainer>attr.initializer;
+                if (container && container.kind === SyntaxKind.JSXExpressionContainer) {
+                    file.jsxNamespace = container.expression;
+                    return true;
+                }
+                return false;
             }
+        };
 
-            var opening = parseJSXElement().openingElement;
-
-            if (lookAheadMode === LookAheadMode.Error || opening.tagName.kind !== SyntaxKind.Identifier) {
-                return;
-            }
-
-            var attrs = arrayToMap(opening.properties, (attr: JSXAttribute) => attr.name.text);
-            var attr: JSXAttribute;
-
-            switch ((<Identifier>opening.tagName).text) {
-                case 'reference':
-                    if (hasProperty(attrs, 'no-default-lib')) {
-                        file.hasNoDefaultLib = true;
-                    }
-                    attr = getProperty(attrs, 'path');
-                    if (attr && attr.initializer && attr.initializer.kind === SyntaxKind.StringLiteral) {
-                        file.referencedFiles.push({
-                            pos: attr.initializer.pos,
-                            end: attr.initializer.end,
-                            filename: (<LiteralExpression>attr.initializer).text
-                        });
-                    }
-                    break;
-
-                case 'amd-dependency':
-                    attr = getProperty(attrs, 'path');
-                    if (attr && attr.initializer && attr.initializer.kind === SyntaxKind.StringLiteral) {
-                        file.amdDependencies.push((<LiteralExpression>attr.initializer).text);
-                    }
-                    break;
-
-                case 'jsx':
-                    attr = getProperty(attrs, 'namespace');
-                    if (attr && attr.initializer && attr.initializer.kind === SyntaxKind.JSXExpressionContainer) {
-                        file.jsxNamespace = (<JSXExpressionContainer>attr.initializer).expression;
-                    }
-                    break;
-            }
-        }
-
-        function processReferenceComments() {
+        function processDirectiveComments() {
             var comments = commentRanges = [];
             nextToken();
             commentRanges = undefined;
             forEach(comments, comment => {
-                if (sourceText.substr(comment.pos, 3) === '///') {
-                    lookAhead(() => processReferenceComment(comment));
+                if (sourceText.substr(comment.pos, 3) !== '///') {
+                    return;
+                }
+                var errorTagName = lookAhead(() => {
+                    scanner.setTextPos(comment.pos + 3);
+                    if (nextToken() !== SyntaxKind.LessThanToken) {
+                        return;
+                    }
+                    var opening = parseJSXElement().openingElement;
+                    if (opening.tagName.kind !== SyntaxKind.Identifier) {
+                        return;
+                    }
+                    var tag = (<Identifier>opening.tagName).text;
+                    var directiveHandler = directiveHandlers[tag];
+                    if (!directiveHandler) {
+                        return;
+                    }
+                    var attrs = arrayToMap(opening.properties, (attr: JSXAttribute) => attr.name.text);
+                    if (lookAheadMode === LookAheadMode.Error || !directiveHandler(attrs)) {
+                        return tag;
+                    }
+                });
+                if (errorTagName) {
+                    errorAtPos(comment.pos, comment.end - comment.pos, Diagnostics.Invalid_0_directive_syntax, errorTagName);
                 }
             });
         }
@@ -3928,7 +3944,7 @@ module ts {
         file.referencedFiles = [];
         file.amdDependencies = [];
         file.jsxNamespace = createMissingNode();
-        processReferenceComments();
+        processDirectiveComments();
         file.statements = parseList(ParsingContext.SourceElements, /*checkForStrictMode*/ true, parseSourceElement);
         file.externalModuleIndicator = getExternalModuleIndicator();
         file.nodeCount = nodeCount;

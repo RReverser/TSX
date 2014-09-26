@@ -723,7 +723,6 @@ module ts {
         InSingleQuoteStringLiteral,
         InDoubleQuoteStringLiteral,
         EndingWithDotToken,
-        InReferenceComments,
         InJSXContents,
     }
 
