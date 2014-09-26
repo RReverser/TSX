@@ -2208,7 +2208,7 @@ module ts {
                         }
                     } else if (token === SyntaxKind.GreaterThanToken) {
                         nextToken();
-                        if (token === SyntaxKind.OpenBraceToken || scanner.hasPrecedingLineBreak() || token === SyntaxKind.EndOfFileToken) {
+                        if (scanner.hasPrecedingLineBreak()) {
                             return Tristate.True;
                         } else if (isMaybeTag) {
                             return Tristate.Unknown;
