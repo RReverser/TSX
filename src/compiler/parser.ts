@@ -3912,9 +3912,9 @@ module ts {
                     if (lookAheadMode === LookAheadMode.Error || !directiveHandler(attrs)) {
                         return tag;
                     }
-                });
+                }, true);
                 if (errorTagName) {
-                    errorAtPos(comment.pos, comment.end - comment.pos, Diagnostics.Invalid_0_directive_syntax, errorTagName);
+                    grammarErrorAtPos(comment.pos, comment.end - comment.pos, Diagnostics.Invalid_0_directive_syntax, errorTagName);
                 }
             });
         }
