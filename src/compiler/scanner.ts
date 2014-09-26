@@ -511,13 +511,19 @@ module ts {
             var code = text.replace(reComments, "").replace(reSpaces, ""),
                 reClosingTags = languageVersion === ScriptTarget.ES3 ? reClosingTagsES3 : reClosingTagsES5,
                 match: RegExpExecArray,
-                maybeTags: { [name: string]: boolean } = {};
+                maybeTags: StringSet = {};
 
             while (match = reClosingTags.exec(code)) {
                 maybeTags[match[1] + (match[3] ? "$" : "")] = true;
             }
 
-            reMaybeTag = new RegExp("^(" + Object.keys(maybeTags).map(name => name.replace(".", "\\.")).join("|") + ")");
+            var names: string[] = [];
+
+            for (var name in maybeTags) {
+                names.push(name.replace(".", "\\."));
+            }
+
+            reMaybeTag = names.length ? new RegExp("^(" + names.join("|") + ")") : null;
         }
 
         function error(message: DiagnosticMessage): void {
@@ -1143,7 +1149,7 @@ module ts {
             hasPrecedingLineBreak: () => precedingLineBreak,
             isIdentifier: () => token === SyntaxKind.Identifier || token > SyntaxKind.LastReservedWord,
             isReservedWord: () => token >= SyntaxKind.FirstReservedWord && token <= SyntaxKind.LastReservedWord,
-            isMaybeTag: (tagName: string) => reMaybeTag.test(tagName),
+            isMaybeTag: (tagName: string) => reMaybeTag && reMaybeTag.test(tagName),
             reScanGreaterToken: reScanGreaterToken,
             reScanSlashToken: reScanSlashToken,
             scan: scan,
