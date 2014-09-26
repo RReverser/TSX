@@ -3904,7 +3904,7 @@ module ts {
                         return;
                     }
                     var tag = (<Identifier>opening.tagName).text;
-                    var directiveHandler = directiveHandlers[tag];
+                    var directiveHandler = getProperty(directiveHandlers, tag);
                     if (!directiveHandler) {
                         return;
                     }
