@@ -1847,17 +1847,19 @@ module ts {
 
             var mappedParent = mappedNode.parent;
             
-            while (mappedParent.kind === SyntaxKind.QualifiedName) {
-                mappedParent = mappedParent.parent;
-            }
+            if (mappedParent) {
+                while (mappedParent.kind === SyntaxKind.QualifiedName) {
+                    mappedParent = mappedParent.parent;
+                }
 
-            if (mappedParent.kind === SyntaxKind.JSXOpeningElement && (<JSXOpeningElement>mappedParent).tagName.getEnd() < position) {
-                isRightOfDot = true;
-                mappedNode = mappedParent;
-            } else
-            if (mappedParent.kind === SyntaxKind.JSXAttribute) {
-                isRightOfDot = true;
-                mappedNode = mappedParent.parent;
+                if (mappedParent.kind === SyntaxKind.JSXOpeningElement && (<JSXOpeningElement>mappedParent).tagName.getEnd() < position) {
+                    isRightOfDot = true;
+                    mappedNode = mappedParent;
+                } else
+                if (mappedParent.kind === SyntaxKind.JSXAttribute) {
+                    isRightOfDot = true;
+                    mappedNode = mappedParent.parent;
+                }
             }
 
             // Get the completions
@@ -1919,7 +1921,7 @@ module ts {
                 else {
                     /// TODO filter meaning based on the current context
                     var symbolMeanings: ts.SymbolFlags;
-                    if (mappedParent.kind === 179) {
+                    if (mappedParent && mappedParent.kind === SyntaxKind.JSXElement) {
                         if (sourceFile.jsxNamespace.kind !== SyntaxKind.Missing) {
                             getCompletionEntriesFromSymbols(
                                 typeInfoResolver.getApparentType(typeInfoResolver.getTypeOfNode(sourceFile.jsxNamespace)).getApparentProperties(),
