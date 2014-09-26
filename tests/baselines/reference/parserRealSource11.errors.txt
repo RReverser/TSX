@@ -3,7 +3,7 @@
     // See LICENSE.txt in the project root for complete license information.
     
     ///<reference path='typescript.ts' />
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                       ~~~~~~~~~~~~~~~
 !!! File 'typescript.ts' not found.
     
     module TypeScript {

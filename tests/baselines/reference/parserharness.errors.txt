@@ -15,16 +15,16 @@
     //
     
     ///<reference path='..\compiler\io.ts'/>
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                       ~~~~~~~~~~~~~~~~~~~
 !!! File 'io.ts' not found.
     ///<reference path='..\compiler\typescript.ts'/>
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 !!! File 'typescript.ts' not found.
     ///<reference path='..\services\typescriptServices.ts' />
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 !!! File 'typescriptServices.ts' not found.
     ///<reference path='diff.ts'/>
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                       ~~~~~~~~~
 !!! File 'diff.ts' not found.
     
     declare var assert: Harness.Assert;

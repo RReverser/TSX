@@ -15,7 +15,7 @@
     //
     
     ///<reference path='formatting.ts' />
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                       ~~~~~~~~~~~~~~~
 !!! File 'formatting.ts' not found.
     
     
