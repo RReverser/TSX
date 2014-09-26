@@ -3876,7 +3876,7 @@ module ts {
             },
 
             'jsx': attrs => {
-                var attr = getProperty(attrs, 'path');
+                var attr = getProperty(attrs, 'namespace');
                 var container = attr && <JSXExpressionContainer>attr.initializer;
                 if (container && container.kind === SyntaxKind.JSXExpressionContainer) {
                     file.jsxNamespace = container.expression;
