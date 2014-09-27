@@ -1,9 +1,11 @@
-==== tests/cases/conformance/parser/ecmascript5/Types/parserTypeQuery8.ts (4 errors) ====
+==== tests/cases/conformance/parser/ecmascript5/Types/parserTypeQuery8.ts (5 errors) ====
     var v: typeof A<B>
                    ~
 !!! '=' expected.
                       
-!!! Expression expected.
+!!! '<' expected.
+                      
+!!! Expected closing tag for <B ...> but found </(Missing)>.
                   ~
 !!! Cannot find name 'A'.
                     ~
