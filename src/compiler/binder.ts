@@ -341,6 +341,9 @@ module ts {
                 default:
                     var saveParent = parent;
                     parent = node;
+                    if (node.kind === SyntaxKind.SourceFile && (<SourceFile>node).jsxNamespace.kind !== SyntaxKind.Missing) {
+                        bind((<SourceFile>node).jsxNamespace);
+                    }
                     forEachChild(node, bind);
                     parent = saveParent;
             }

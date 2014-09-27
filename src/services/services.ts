@@ -1921,7 +1921,8 @@ module ts {
                 else {
                     /// TODO filter meaning based on the current context
                     var symbolMeanings: ts.SymbolFlags;
-                    if (mappedParent && mappedParent.kind === SyntaxKind.JSXElement) {
+                    isMemberCompletion = false;
+                    if (mappedParent && mappedParent.kind === SyntaxKind.JSXOpeningElement) {
                         if (sourceFile.jsxNamespace.kind !== SyntaxKind.Missing) {
                             getCompletionEntriesFromSymbols(
                                 typeInfoResolver.getApparentType(typeInfoResolver.getTypeOfNode(sourceFile.jsxNamespace)).getApparentProperties(),
@@ -1930,7 +1931,6 @@ module ts {
                         }
                         symbolMeanings = ts.SymbolFlags.Function | ts.SymbolFlags.Type | ts.SymbolFlags.Namespace;
                     } else {
-                        isMemberCompletion = false;
                         symbolMeanings = ts.SymbolFlags.Type | ts.SymbolFlags.Value | ts.SymbolFlags.Namespace;
                     }
                     var symbols = typeInfoResolver.getSymbolsInScope(mappedNode, symbolMeanings);

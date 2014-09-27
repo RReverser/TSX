@@ -2196,11 +2196,11 @@ module ts {
                 parseExpected(SyntaxKind.LessThanToken);
                 if (isNonIdentifierType()) {
                     return Tristate.False;
-                } else if (token === SyntaxKind.EndOfFileToken) {
+                } else if (canParseSemicolon()) {
                     return Tristate.True;
                 } else {
                     var isMaybeTag = scanner.isMaybeTag(entityNameToString(parseEntityName(false)));
-                    if (token === SyntaxKind.SlashToken || token >= SyntaxKind.Identifier || token === SyntaxKind.EndOfFileToken) {
+                    if (token === SyntaxKind.SlashToken || token >= SyntaxKind.Identifier || canParseSemicolon()) {
                         if (token === SyntaxKind.ExtendsKeyword || token === SyntaxKind.ImplementsKeyword) {
                             return Tristate.Unknown;
                         } else {
@@ -2208,7 +2208,7 @@ module ts {
                         }
                     } else if (token === SyntaxKind.GreaterThanToken) {
                         nextToken();
-                        if (scanner.hasPrecedingLineBreak()) {
+                        if (canParseSemicolon()) {
                             return Tristate.True;
                         } else if (isMaybeTag) {
                             return Tristate.Unknown;
