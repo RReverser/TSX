@@ -951,14 +951,16 @@ module ts {
                         }
                         return pos++, token = SyntaxKind.LessThanToken;
                     case CharacterCodes.equals:
-                        if (text.charCodeAt(pos + 1) === CharacterCodes.equals) {
-                            if (text.charCodeAt(pos + 2) === CharacterCodes.equals) {
-                                return pos += 3, token = SyntaxKind.EqualsEqualsEqualsToken;
+                        if (jsxContext === JSXContext.None) {
+                            if (text.charCodeAt(pos + 1) === CharacterCodes.equals) {
+                                if (text.charCodeAt(pos + 2) === CharacterCodes.equals) {
+                                    return pos += 3, token = SyntaxKind.EqualsEqualsEqualsToken;
+                                }
+                                return pos += 2, token = SyntaxKind.EqualsEqualsToken;
                             }
-                            return pos += 2, token = SyntaxKind.EqualsEqualsToken;
-                        }
-                        if (jsxContext === JSXContext.None && text.charCodeAt(pos + 1) === CharacterCodes.greaterThan) {
-                            return pos += 2, token = SyntaxKind.EqualsGreaterThanToken;
+                            if (text.charCodeAt(pos + 1) === CharacterCodes.greaterThan) {
+                                return pos += 2, token = SyntaxKind.EqualsGreaterThanToken;
+                            }
                         }
                         return pos++, token = SyntaxKind.EqualsToken;
                     case CharacterCodes.greaterThan:

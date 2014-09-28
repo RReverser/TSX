@@ -730,7 +730,11 @@ module ts {
 
             function emitLiteral(node: LiteralExpression) {
                 var text = getSourceTextOfLocalNode(node);
-                if (node.kind === SyntaxKind.StringLiteral && compilerOptions.sourceMap) {
+                if (node.kind === SyntaxKind.StringLiteral && (node.parent.kind === SyntaxKind.JSXElement ||
+                    node.parent.kind === SyntaxKind.JSXAttribute)) {
+                    emitJSXText(<LiteralExpression>node);
+                }
+                else if (node.kind === SyntaxKind.StringLiteral && compilerOptions.sourceMap) {
                     writer.writeLiteral(text);
                 }
                 else {
@@ -914,7 +918,6 @@ module ts {
 
             function emitJSXElement(node: JSXElement) {
                 var opening = node.openingElement;
-                var hasChildren = node.children.length;
                 if (resolver.isJSXConstructor(node)) {
                     write("new ");
                 }
@@ -925,11 +928,15 @@ module ts {
                 } else {
                     emitObjectLiteral(opening);
                 }
-                if (hasChildren) {
+                forEach(node.children, child => {
                     write(", ");
-                    emitCommaList(node.children);
-                }
+                    emit(child);
+                });
                 write(")");
+            }
+
+            function emitJSXText(node: LiteralExpression) {
+                write(JSON.stringify((<LiteralExpression>node).text));
             }
 
             function emitNewExpression(node: NewExpression) {
