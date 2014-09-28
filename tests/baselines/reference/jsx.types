@@ -1,0 +1,113 @@
+=== tests/cases/compiler/jsx.ts ===
+/// <jsx namespace={ns} />
+
+interface HTMLDivElement {
+>HTMLDivElement : HTMLDivElement
+}
+
+function div(props: { className?: string; }): HTMLDivElement {
+>div : (props: { className?: string; }) => HTMLDivElement
+>props : { className?: string; }
+>className : string
+>HTMLDivElement : HTMLDivElement
+
+	return {};
+>{} : {}
+}
+
+class a {
+>a : a
+
+	constructor(props: { href: string; }) {
+>props : { href: string; }
+>href : string
+	}
+}
+
+module ns {
+>ns : typeof ns
+
+	export class b {
+>b : b
+	}
+}
+
+module ns2 {
+>ns2 : typeof ns2
+
+	export class i {
+>i : i
+	}
+}
+
+// Creates element from factory
+var elm = <div className="cls" />;
+>elm : HTMLDivElement
+>div : (props: { className?: string; }) => HTMLDivElement
+>className : unknown
+
+// Creates element from class
+var elm2 = <a href="http://rreverser.com/" />;
+>elm2 : a
+>a : typeof a
+>href : unknown
+
+// Creates element from auto-namespaced name
+var b = <b>text</b>;
+>b : ns.b
+>b : ns.b
+>b : ns.b
+
+// Local symbol doesn't override auto-namespaced name
+var b2 = <b>another text</b>;
+>b2 : ns.b
+>b : ns.b
+>b : ns.b
+
+// Creates element from manually namespaced name
+var i = <ns2.i>quite different text</ns2.i>;
+>i : ns2.i
+>ns2 : typeof ns2
+>i : typeof ns2.i
+>ns2 : typeof ns2
+>i : typeof ns2.i
+
+// Creates complicated structures of nested elements
+var html = <div data-numbers="
+>html : HTMLDivElement
+>div : (props: { className?: string; }) => HTMLDivElement
+>data-numbers : unknown
+
+1
+2
+">
+	<b>{this.title}</b>
+>b : ns.b
+>this.title : any
+>this : any
+>title : any
+>b : ns.b
+
+	Current time is <ns2.i>[ {Date.now()} ]</ns2.i>
+>ns2 : typeof ns2
+>i : typeof ns2.i
+>Date.now() : number
+>Date.now : () => number
+>Date : { (): string; new (): Date; new (value: number): Date; new (value: string): Date; new (year: number, month: number, date?: number, hours?: number, minutes?: number, seconds?: number, ms?: number): Date; prototype: Date; parse(s: string): number; UTC(year: number, month: number, date?: number, hours?: number, minutes?: number, seconds?: number, ms?: number): number; now(): number; }
+>now : () => number
+>ns2 : typeof ns2
+>i : typeof ns2.i
+
+</div>;
+>div : (props: { className?: string; }) => HTMLDivElement
+
+// Works fine with type casts
+var smth = <ns2.i><any><b>text</b>;
+>smth : ns2.i
+><ns2.i><any><b>text</b> : ns2.i
+>ns2 : unknown
+>i : ns2.i
+><any><b>text</b> : any
+>b : ns.b
+>b : ns.b
+
