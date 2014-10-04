@@ -779,7 +779,7 @@ module ts {
                 var ch = text.charCodeAt(pos);
                 if (jsxContext === JSXContext.Contents && ch !== CharacterCodes.lessThan && ch !== CharacterCodes.openBrace && ch !== CharacterCodes.closeBrace) {
                     tokenValue = scanJSXText([CharacterCodes.lessThan, CharacterCodes.openBrace]);
-                    return token = SyntaxKind.StringLiteral;
+                    return token = SyntaxKind.JSXText;
                 }
                 switch (ch) {
                     case CharacterCodes.lineFeed:
@@ -801,8 +801,13 @@ module ts {
                         return pos++, token = SyntaxKind.ExclamationToken;
                     case CharacterCodes.doubleQuote:
                     case CharacterCodes.singleQuote:
-                        tokenValue = jsxContext === JSXContext.Attributes ? scanJSXString() : scanString();
-                        return token = SyntaxKind.StringLiteral;
+                        if (jsxContext === JSXContext.Attributes) {
+                            tokenValue = scanJSXString();
+                            return token = SyntaxKind.JSXText;
+                        } else {
+                            tokenValue = scanString();
+                            return token = SyntaxKind.StringLiteral;
+                        }
                     case CharacterCodes.percent:
                         if (text.charCodeAt(pos + 1) === CharacterCodes.equals) {
                             return pos += 2, token = SyntaxKind.PercentEqualsToken;

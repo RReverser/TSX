@@ -1,15 +1,23 @@
 //// [jsx.ts]
 /// <jsx namespace={ns} />
 
-interface HTMLDivElement {
+interface AProps {
+	href: string;
 }
 
-function div(props: { className?: string; }): HTMLDivElement {
-	return {};
+interface DivProps {
+	className?: string;
+}
+
+interface DivElement extends DivProps {
+}
+
+function div(props: DivProps): DivElement {
+	return props;
 }
 
 class a {
-	constructor(props: { href: string; }) {
+	constructor(props: AProps) {
 	}
 }
 
@@ -39,12 +47,13 @@ var b2 = <b>another text</b>;
 var i = <ns2.i>quite different text</ns2.i>;
 
 // Creates complicated structures of nested elements
-var html = <div data-numbers="
+var html = <div
+data-numbers="
 1
 2
-">
+" x={0} yes>
 	<b>{this.title}</b>
-	Current time is <ns2.i>[ {Date.now()} ]</ns2.i>
+	Current time{/* in milliseconds */} is{} <ns2.i>[ {Date.now()} ]</ns2.i>
 </div>;
 
 // Works fine with type casts
@@ -53,7 +62,7 @@ var smth = <ns2.i><any><b>text</b>;
 //// [jsx.js]
 /// <jsx namespace={ns} />
 function div(props) {
-    return {};
+    return props;
 }
 var a = (function () {
     function a(props) {
@@ -89,6 +98,16 @@ var b2 = new ns.b(null, "another text");
 // Creates element from manually namespaced name
 var i = new ns2.i(null, "quite different text");
 // Creates complicated structures of nested elements
-var html = div({ "data-numbers": "\n1\n2\n" }, "\n\t", new ns.b(null, (this.title)), "\n\tCurrent time is ", new ns2.i(null, "[ ", (Date.now()), " ]"), "\n");
+var html = div({
+    "data-numbers": "\n\
+1\n\
+2\n\
+",
+    x: 0,
+    yes: true
+}, "\n\
+\t", new ns.b(null, this.title), "\n\
+\tCurrent time", " is", " ", new ns2.i(null, "[ ", Date.now(), " ]"), "\n\
+");
 // Works fine with type casts
 var smth = new ns.b(null, "text");

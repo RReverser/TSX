@@ -1035,7 +1035,7 @@ module ts {
                 case ParsingContext.JSXAttributes:
                     return token >= SyntaxKind.Identifier || token === SyntaxKind.EqualsToken;
                 case ParsingContext.JSXContents:
-                    return token === SyntaxKind.StringLiteral || token === SyntaxKind.OpenBraceToken || token === SyntaxKind.LessThanToken;
+                    return token === SyntaxKind.JSXText || token === SyntaxKind.OpenBraceToken || token === SyntaxKind.LessThanToken;
             }
 
             Debug.fail("Non-exhaustive case in 'isListElement'.");
@@ -2246,6 +2246,9 @@ module ts {
             var oldJSXContext = scanner.setJSXContext(JSXContext.Attributes);
             parseExpected(SyntaxKind.LessThanToken);
             node.tagName = parseEntityName(false);
+            if (scanner.hasPrecedingLineBreak()) {
+                node.flags |= NodeFlags.MultiLine;
+            }
             node.properties = parseList(ParsingContext.JSXAttributes, /* checkForStrictMode */false, parseJSXAttribute);
             node.selfClosing = parseOptional(SyntaxKind.SlashToken);
             if (node.selfClosing) {
@@ -2272,23 +2275,20 @@ module ts {
         }
 
         function parseJSXValue(isAttrValue: boolean): Expression {
-            if (token === SyntaxKind.OpenBraceToken) {
-                var container = parseJSXExpressionContainer();
-                if (isAttrValue && container.expression.kind === SyntaxKind.Missing) {
-                    grammarErrorOnNode(container, Diagnostics.JSX_attribute_value_can_t_be_empty_expression);
-                }
-                return container;
+            switch (token) {
+                case SyntaxKind.OpenBraceToken:
+                    var container = parseJSXExpressionContainer();
+                    if (isAttrValue && container.expression.kind === SyntaxKind.Missing) {
+                        grammarErrorOnNode(container, Diagnostics.JSX_attribute_value_can_t_be_empty_expression);
+                    }
+                    return container;
+                
+                case SyntaxKind.JSXText:
+                    return parseLiteralNode();
+
+                case SyntaxKind.LessThanToken:
+                    return parseJSXElement();
             }
-            if (token >= SyntaxKind.Identifier || token === SyntaxKind.GreaterThanToken) {
-                var node = createMissingNode();
-                grammarErrorOnNode(node, Diagnostics.Expression_expected);
-                return node;
-            }
-            var expr = parseUnaryExpression();
-            if (expr.kind !== SyntaxKind.StringLiteral && expr.kind !== SyntaxKind.JSXElement) {
-                grammarErrorOnNode(expr, Diagnostics.JSX_value_should_be_either_string_or_expression_wrapped_into_braces);
-            }
-            return expr;
         }
 
         function entityNameToString(entity: EntityName): string {
@@ -2426,6 +2426,7 @@ module ts {
                     return parseTokenNode();
                 case SyntaxKind.NumericLiteral:
                 case SyntaxKind.StringLiteral:
+                case SyntaxKind.JSXText:
                     return parseLiteralNode();
                 case SyntaxKind.OpenParenToken:
                     return parseParenExpression();

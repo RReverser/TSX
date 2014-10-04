@@ -1930,7 +1930,8 @@ module ts {
                             );
                         }
                         symbolMeanings = ts.SymbolFlags.Function | ts.SymbolFlags.Type | ts.SymbolFlags.Namespace;
-                    } else {
+                    }
+                    else {
                         symbolMeanings = ts.SymbolFlags.Type | ts.SymbolFlags.Value | ts.SymbolFlags.Namespace;
                     }
                     var symbols = typeInfoResolver.getSymbolsInScope(mappedNode, symbolMeanings);
@@ -3856,13 +3857,15 @@ module ts {
                     if (inUnterminatedMultiLineComment) {
                         result.finalLexState = EndOfLineState.InMultiLineCommentTrivia;
                     }
-                    else if (token === SyntaxKind.StringLiteral) {
+                    else if (token === SyntaxKind.StringLiteral || token === SyntaxKind.JSXText) {
                         var tokenText = scanner.getTokenText();
-                        if (tokenText.length > 0 && tokenText.charCodeAt(tokenText.length - 1) === CharacterCodes.backslash) {
+                        if (tokenText.length > 0) {
                             var quoteChar = tokenText.charCodeAt(0);
-                            result.finalLexState = quoteChar === CharacterCodes.doubleQuote
-                                ? EndOfLineState.InDoubleQuoteStringLiteral
-                                : EndOfLineState.InSingleQuoteStringLiteral;
+                            if (tokenText.length === 1 || tokenText.charCodeAt(tokenText.length - 1) !== quoteChar) {
+                                result.finalLexState = quoteChar === CharacterCodes.doubleQuote
+                                    ? EndOfLineState.InDoubleQuoteStringLiteral
+                                    : EndOfLineState.InSingleQuoteStringLiteral;
+                            }
                         }
                     }
                     else if (token === SyntaxKind.DotToken) {

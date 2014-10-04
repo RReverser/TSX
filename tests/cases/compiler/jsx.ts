@@ -1,14 +1,22 @@
 /// <jsx namespace={ns} />
 
-interface HTMLDivElement {
+interface AProps {
+	href: string;
 }
 
-function div(props: { className?: string; }): HTMLDivElement {
-	return {};
+interface DivProps {
+	className?: string;
+}
+
+interface DivElement extends DivProps {
+}
+
+function div(props: DivProps): DivElement {
+	return props;
 }
 
 class a {
-	constructor(props: { href: string; }) {
+	constructor(props: AProps) {
 	}
 }
 
@@ -38,12 +46,13 @@ var b2 = <b>another text</b>;
 var i = <ns2.i>quite different text</ns2.i>;
 
 // Creates complicated structures of nested elements
-var html = <div data-numbers="
+var html = <div
+data-numbers="
 1
 2
-">
+" x={0} yes>
 	<b>{this.title}</b>
-	Current time is <ns2.i>[ {Date.now()} ]</ns2.i>
+	Current time{/* in milliseconds */} is{} <ns2.i>[ {Date.now()} ]</ns2.i>
 </div>;
 
 // Works fine with type casts

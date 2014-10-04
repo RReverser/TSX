@@ -16,6 +16,7 @@ module ts {
         NumericLiteral,
         StringLiteral,
         RegularExpressionLiteral,
+        JSXText,
         // Punctuation
         OpenBraceToken,
         CloseBraceToken,

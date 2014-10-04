@@ -5043,6 +5043,7 @@ module ts {
                 case SyntaxKind.NumericLiteral:
                     return numberType;
                 case SyntaxKind.StringLiteral:
+                case SyntaxKind.JSXText:
                     return stringType;
                 case SyntaxKind.RegularExpressionLiteral:
                     return globalRegExpType;
@@ -6950,6 +6951,7 @@ module ts {
                 // Fall through
                 case SyntaxKind.NumericLiteral:
                 case SyntaxKind.StringLiteral:
+                case SyntaxKind.JSXText:
                     var parent = node.parent;
                     switch (parent.kind) {
                         case SyntaxKind.VariableDeclaration:

@@ -1,26 +1,41 @@
 === tests/cases/compiler/jsx.ts ===
 /// <jsx namespace={ns} />
 
-interface HTMLDivElement {
->HTMLDivElement : HTMLDivElement
+interface AProps {
+>AProps : AProps
+
+	href: string;
+>href : string
 }
 
-function div(props: { className?: string; }): HTMLDivElement {
->div : (props: { className?: string; }) => HTMLDivElement
->props : { className?: string; }
->className : string
->HTMLDivElement : HTMLDivElement
+interface DivProps {
+>DivProps : DivProps
 
-	return {};
->{} : {}
+	className?: string;
+>className : string
+}
+
+interface DivElement extends DivProps {
+>DivElement : DivElement
+>DivProps : DivProps
+}
+
+function div(props: DivProps): DivElement {
+>div : (props: DivProps) => DivElement
+>props : DivProps
+>DivProps : DivProps
+>DivElement : DivElement
+
+	return props;
+>props : DivProps
 }
 
 class a {
 >a : a
 
-	constructor(props: { href: string; }) {
->props : { href: string; }
->href : string
+	constructor(props: AProps) {
+>props : AProps
+>AProps : AProps
 	}
 }
 
@@ -42,64 +57,98 @@ module ns2 {
 
 // Creates element from factory
 var elm = <div className="cls" />;
->elm : HTMLDivElement
->div : (props: { className?: string; }) => HTMLDivElement
->className : unknown
+>elm : DivElement
+><div className="cls" /> : DivElement
+><div className="cls" /> : DivProps
+>div : (props: DivProps) => DivElement
+>className : string
+>"cls" : string
 
 // Creates element from class
 var elm2 = <a href="http://rreverser.com/" />;
 >elm2 : a
+><a href="http://rreverser.com/" /> : a
+><a href="http://rreverser.com/" /> : AProps
 >a : typeof a
->href : unknown
+>href : string
+>"http://rreverser.com/" : string
 
 // Creates element from auto-namespaced name
 var b = <b>text</b>;
 >b : ns.b
+><b>text</b> : ns.b
+><b> : any
 >b : ns.b
+>text : string
 >b : ns.b
 
 // Local symbol doesn't override auto-namespaced name
 var b2 = <b>another text</b>;
 >b2 : ns.b
+><b>another text</b> : ns.b
+><b> : any
 >b : ns.b
+>another text : string
 >b : ns.b
 
 // Creates element from manually namespaced name
 var i = <ns2.i>quite different text</ns2.i>;
 >i : ns2.i
+><ns2.i>quite different text</ns2.i> : ns2.i
+><ns2.i> : any
 >ns2 : typeof ns2
 >i : typeof ns2.i
+>quite different text : string
 >ns2 : typeof ns2
 >i : typeof ns2.i
 
 // Creates complicated structures of nested elements
-var html = <div data-numbers="
->html : HTMLDivElement
->div : (props: { className?: string; }) => HTMLDivElement
->data-numbers : unknown
+var html = <div
+>html : DivElement
+><divdata-numbers="12" x={0} yes>	<b>{this.title}</b>	Current time{/* in milliseconds */} is{} <ns2.i>[ {Date.now()} ]</ns2.i></div> : DivElement
+><divdata-numbers="12" x={0} yes> : DivProps
+>div : (props: DivProps) => DivElement
+
+data-numbers="
+>data-numbers : string
+>"12" : string
 
 1
 2
-">
+" x={0} yes>
+>x : number
+>yes : any
+
 	<b>{this.title}</b>
+> : string
+><b>{this.title}</b> : ns.b
+><b> : any
 >b : ns.b
 >this.title : any
 >this : any
 >title : any
 >b : ns.b
 
-	Current time is <ns2.i>[ {Date.now()} ]</ns2.i>
+	Current time{/* in milliseconds */} is{} <ns2.i>[ {Date.now()} ]</ns2.i>
+>Current time : string
+>is : string
+> : string
+><ns2.i>[ {Date.now()} ]</ns2.i> : ns2.i
+><ns2.i> : any
 >ns2 : typeof ns2
 >i : typeof ns2.i
+>[  : string
 >Date.now() : number
 >Date.now : () => number
 >Date : { (): string; new (): Date; new (value: number): Date; new (value: string): Date; new (year: number, month: number, date?: number, hours?: number, minutes?: number, seconds?: number, ms?: number): Date; prototype: Date; parse(s: string): number; UTC(year: number, month: number, date?: number, hours?: number, minutes?: number, seconds?: number, ms?: number): number; now(): number; }
 >now : () => number
+>] : string
 >ns2 : typeof ns2
 >i : typeof ns2.i
 
 </div>;
->div : (props: { className?: string; }) => HTMLDivElement
+> : string
+>div : (props: DivProps) => DivElement
 
 // Works fine with type casts
 var smth = <ns2.i><any><b>text</b>;
@@ -108,6 +157,9 @@ var smth = <ns2.i><any><b>text</b>;
 >ns2 : unknown
 >i : ns2.i
 ><any><b>text</b> : any
+><b>text</b> : ns.b
+><b> : any
 >b : ns.b
+>text : string
 >b : ns.b
 

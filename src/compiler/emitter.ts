@@ -728,14 +728,37 @@ module ts {
                 }
             }
 
+            function emitLiteralString(text: string) {
+                if (compilerOptions.sourceMap) {
+                    writer.writeLiteral(text);
+                }
+                else {
+                    write(text);
+                }
+            }
+
+            function emitJSXExpressionContainer(node: JSXExpressionContainer) {
+                var expr = node.expression;
+                if (expr.kind === SyntaxKind.BinaryExpression && (<BinaryExpression>expr).operator === SyntaxKind.CommaToken) {
+                    return emitParenExpression(node);
+                }
+                else {
+                    return emit(expr);
+                }
+            }
+
+            function emitJSXText(node: LiteralExpression) {
+                emitLiteralString(
+                    JSON.stringify(node.text)
+                    .replace(/(\\r\\n|\\[rn]|[\u2028\u2029])/g, '$1\\' + newLine)
+                    .replace(/[\u007f-\uffff]/g, c => '\\u' + ('000' + c.charCodeAt(0).toString(16)).slice(-4))
+                );
+            }
+
             function emitLiteral(node: LiteralExpression) {
                 var text = getSourceTextOfLocalNode(node);
-                if (node.kind === SyntaxKind.StringLiteral && (node.parent.kind === SyntaxKind.JSXElement ||
-                    node.parent.kind === SyntaxKind.JSXAttribute)) {
-                    emitJSXText(<LiteralExpression>node);
-                }
-                else if (node.kind === SyntaxKind.StringLiteral && compilerOptions.sourceMap) {
-                    writer.writeLiteral(text);
+                if (node.kind === SyntaxKind.StringLiteral) {
+                    emitLiteralString(text);
                 }
                 else {
                     write(text);
@@ -868,7 +891,12 @@ module ts {
                 emitLeadingComments(node);
                 emit(node.name);
                 write(": ");
-                emit(node.initializer);
+                if (node.kind === SyntaxKind.JSXAttribute && !node.initializer) {
+                    write("true");
+                }
+                else {
+                    emit(node.initializer);
+                }
                 emitTrailingComments(node);
             }
 
@@ -925,18 +953,20 @@ module ts {
                 write("(");
                 if (!opening.properties.length) {
                     write("null");
-                } else {
+                }
+                else {
                     emitObjectLiteral(opening);
                 }
                 forEach(node.children, child => {
-                    write(", ");
-                    emit(child);
+                    if (child.kind === SyntaxKind.JSXExpressionContainer && (<JSXExpressionContainer>child).expression.kind === SyntaxKind.Missing) {
+                        emitTrailingComments((<JSXExpressionContainer>child).expression);
+                    }
+                    else {
+                        write(", ");
+                        emit(child);
+                    }
                 });
                 write(")");
-            }
-
-            function emitJSXText(node: LiteralExpression) {
-                write(JSON.stringify((<LiteralExpression>node).text));
             }
 
             function emitNewExpression(node: NewExpression) {
@@ -2035,6 +2065,8 @@ module ts {
                     case SyntaxKind.StringLiteral:
                     case SyntaxKind.RegularExpressionLiteral:
                         return emitLiteral(<LiteralExpression>node);
+                    case SyntaxKind.JSXText:
+                        return emitJSXText(<LiteralExpression>node);
                     case SyntaxKind.QualifiedName:
                         return emitPropertyAccess(<QualifiedName>node);
                     case SyntaxKind.ArrayLiteral:
@@ -2056,8 +2088,9 @@ module ts {
                         return emitNewExpression(<NewExpression>node);
                     case SyntaxKind.TypeAssertion:
                         return emit((<TypeAssertion>node).operand);
-                    case SyntaxKind.ParenExpression:
                     case SyntaxKind.JSXExpressionContainer:
+                        return emitJSXExpressionContainer(<JSXExpressionContainer>node);
+                    case SyntaxKind.ParenExpression:
                         return emitParenExpression(<ParenExpression>node);
                     case SyntaxKind.FunctionDeclaration:
                     case SyntaxKind.FunctionExpression:
