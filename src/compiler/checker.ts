@@ -3777,10 +3777,11 @@ module ts {
 
         // In a typed function call, an argument expression is contextually typed by the type of the corresponding parameter.
         function getContextualTypeForArgument(node: Expression): Type {
-            var callExpression = <CallExpression>node.parent;
-            var argIndex = indexOf(callExpression.arguments, node);
+            var parent = <Expression>node.parent;
+            var args = parent.kind === SyntaxKind.JSXElement ? getJSXArgs(<JSXElement>parent) : (<CallExpression>parent).arguments;
+            var argIndex = indexOf(args, node);
             if (argIndex >= 0) {
-                var signature = getResolvedSignature(callExpression);
+                var signature = getResolvedSignature(<any>parent);
                 return getTypeAtPosition(signature, argIndex);
             }
             return undefined;
@@ -3865,6 +3866,7 @@ module ts {
                     return getContextualTypeForReturnExpression(node);
                 case SyntaxKind.CallExpression:
                 case SyntaxKind.NewExpression:
+                case SyntaxKind.JSXElement:
                     return getContextualTypeForArgument(node);
                 case SyntaxKind.TypeAssertion:
                     return getTypeFromTypeNode((<TypeAssertion>parent).type);
@@ -4435,9 +4437,13 @@ module ts {
             return node.resolvedIsConstructor;
         }
 
+        function getJSXArgs(node: JSXElement): Expression[] {
+            return [<Expression>node.openingElement].concat(node.children);
+        }
+
         function resolveJSXElement(node: JSXElement): Signature {
             var name = getResolvedJSXName(node);
-            var args = [<Expression>node.openingElement].concat(node.children);
+            var args = getJSXArgs(node);
             var expressionType = checkExpression(name);
             if (expressionType === unknownType) {
                 // Another error has already been reported
