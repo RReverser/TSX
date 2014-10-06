@@ -1845,6 +1845,16 @@ module ts {
 
             Debug.assert(mappedNode, "Could not map a Fidelity node to an AST node");
 
+            // Get the completions
+            activeCompletionSession = {
+                filename: filename,
+                position: position,
+                entries: [],
+                symbols: {},
+                location: mappedNode,
+                typeChecker: typeInfoResolver
+            };
+
             var mappedParent = mappedNode.parent;
             
             if (mappedParent) {
@@ -1855,22 +1865,12 @@ module ts {
                 if (mappedParent.kind === SyntaxKind.JSXOpeningElement && (<JSXOpeningElement>mappedParent).tagName.getEnd() < position) {
                     isRightOfDot = true;
                     mappedNode = mappedParent;
-                } else
-                if (mappedParent.kind === SyntaxKind.JSXAttribute) {
+                }
+                else if (mappedParent.kind === SyntaxKind.JSXAttribute) {
                     isRightOfDot = true;
                     mappedNode = mappedParent.parent;
                 }
             }
-
-            // Get the completions
-            activeCompletionSession = {
-                filename: filename,
-                position: position,
-                entries: [],
-                symbols: {},
-                location: mappedNode,
-                typeChecker: typeInfoResolver
-            };
 
             // Right of dot member completion list
             if (isRightOfDot) {
