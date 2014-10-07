@@ -107,7 +107,7 @@ var html = div({
     yes: true
 }, "\n\
 \t", new ns.b(null, this.title), "\n\
-\tCurrent time", " is", " ", new ns2.i(null, "[ ", Date.now(), " ]"), "\n\
+\tCurrent time" /* in milliseconds */, " is", " ", new ns2.i(null, "[ ", Date.now(), " ]"), "\n\
 ");
 // Works fine with type casts
 var smth = new ns.b(null, "text");
