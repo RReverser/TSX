@@ -62,7 +62,6 @@ var elm = <div className="cls" />;
 ><div className="cls" /> : DivProps
 >div : (props: DivProps) => DivElement
 >className : string
->"cls" : string
 
 // Creates element from class
 var elm2 = <a href="http://rreverser.com/" />;
@@ -71,34 +70,30 @@ var elm2 = <a href="http://rreverser.com/" />;
 ><a href="http://rreverser.com/" /> : AProps
 >a : typeof a
 >href : string
->"http://rreverser.com/" : string
 
 // Creates element from auto-namespaced name
 var b = <b>text</b>;
 >b : ns.b
 ><b>text</b> : ns.b
-><b> : any
+><b> : unknown
 >b : ns.b
->text : string
 >b : ns.b
 
 // Local symbol doesn't override auto-namespaced name
 var b2 = <b>another text</b>;
 >b2 : ns.b
 ><b>another text</b> : ns.b
-><b> : any
+><b> : unknown
 >b : ns.b
->another text : string
 >b : ns.b
 
 // Creates element from manually namespaced name
 var i = <ns2.i>quite different text</ns2.i>;
 >i : ns2.i
 ><ns2.i>quite different text</ns2.i> : ns2.i
-><ns2.i> : any
+><ns2.i> : unknown
 >ns2 : typeof ns2
 >i : typeof ns2.i
->quite different text : string
 >ns2 : typeof ns2
 >i : typeof ns2.i
 
@@ -111,7 +106,6 @@ var html = <div
 
 data-numbers="
 >data-numbers : string
->"12" : string
 
 1
 2
@@ -120,9 +114,8 @@ data-numbers="
 >yes : any
 
 	<b>{this.title}</b>
-> : string
 ><b>{this.title}</b> : ns.b
-><b> : any
+><b> : unknown
 >b : ns.b
 >this.title : any
 >this : any
@@ -130,24 +123,18 @@ data-numbers="
 >b : ns.b
 
 	Current time{/* in milliseconds */} is{} <ns2.i>[ {Date.now()} ]</ns2.i>
->Current time : string
->is : string
-> : string
 ><ns2.i>[ {Date.now()} ]</ns2.i> : ns2.i
-><ns2.i> : any
+><ns2.i> : unknown
 >ns2 : typeof ns2
 >i : typeof ns2.i
->[  : string
 >Date.now() : number
 >Date.now : () => number
 >Date : { (): string; new (): Date; new (value: number): Date; new (value: string): Date; new (year: number, month: number, date?: number, hours?: number, minutes?: number, seconds?: number, ms?: number): Date; prototype: Date; parse(s: string): number; UTC(year: number, month: number, date?: number, hours?: number, minutes?: number, seconds?: number, ms?: number): number; now(): number; }
 >now : () => number
->] : string
 >ns2 : typeof ns2
 >i : typeof ns2.i
 
 </div>;
-> : string
 >div : (props: DivProps) => DivElement
 
 // Works fine with type casts
@@ -158,8 +145,7 @@ var smth = <ns2.i><any><b>text</b>;
 >i : ns2.i
 ><any><b>text</b> : any
 ><b>text</b> : ns.b
-><b> : any
+><b> : unknown
 >b : ns.b
->text : string
 >b : ns.b
 

@@ -3873,6 +3873,7 @@ module ts {
                 case SyntaxKind.BinaryExpression:
                     return getContextualTypeForBinaryOperand(node);
                 case SyntaxKind.PropertyAssignment:
+                case SyntaxKind.JSXAttribute:
                     return getContextualTypeForPropertyExpression(node);
                 case SyntaxKind.ArrayLiteral:
                     return getContextualTypeForElementExpression(node);

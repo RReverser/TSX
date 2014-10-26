@@ -479,6 +479,7 @@ module ts {
             case SyntaxKind.VariableDeclaration:
             case SyntaxKind.Property:
             case SyntaxKind.PropertyAssignment:
+            case SyntaxKind.JSXAttribute:
             case SyntaxKind.EnumMember:
             case SyntaxKind.Method:
             case SyntaxKind.FunctionDeclaration:
