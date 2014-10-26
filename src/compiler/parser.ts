@@ -3855,7 +3855,7 @@ module ts {
                 }
                 var attr = getProperty(attrs, 'path');
                 var expr = attr && <LiteralExpression>attr.initializer;
-                if (expr && expr.kind === SyntaxKind.StringLiteral) {
+                if (expr && expr.kind === SyntaxKind.JSXText) {
                     file.referencedFiles.push({
                         pos: expr.pos,
                         end: expr.end,
@@ -3869,7 +3869,7 @@ module ts {
             'amd-dependency': attrs => {
                 var attr = getProperty(attrs, 'path');
                 var expr = attr && <LiteralExpression>attr.initializer;
-                if (expr && expr.kind === SyntaxKind.StringLiteral) {
+                if (expr && expr.kind === SyntaxKind.JSXText) {
                     file.amdDependencies.push(expr.text);
                     return true;
                 }

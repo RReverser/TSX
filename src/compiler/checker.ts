@@ -6923,6 +6923,7 @@ module ts {
         }
 
         function isExpression(node: Node): boolean {
+            var parent = node.parent;
             switch (node.kind) {
                 case SyntaxKind.ThisKeyword:
                 case SyntaxKind.SuperKeyword:
@@ -6939,6 +6940,7 @@ module ts {
                 case SyntaxKind.JSXElement:
                 case SyntaxKind.TypeAssertion:
                 case SyntaxKind.ParenExpression:
+                case SyntaxKind.JSXExpressionContainer:
                 case SyntaxKind.FunctionExpression:
                 case SyntaxKind.ArrowFunction:
                 case SyntaxKind.PrefixOperator:
@@ -6951,20 +6953,21 @@ module ts {
                     while (node.parent.kind === SyntaxKind.QualifiedName) node = node.parent;
                     return node.parent.kind === SyntaxKind.TypeQuery || isTagName(node);
                 case SyntaxKind.Identifier:
-                    if (node.parent.kind === SyntaxKind.TypeQuery || isTagName(node)) {
+                    if (parent.kind === SyntaxKind.TypeQuery || isTagName(node) ||
+                        parent.kind === SyntaxKind.SourceFile && node === (<SourceFile>parent).jsxNamespace) {
                         return true;
                     }
                 // Fall through
                 case SyntaxKind.NumericLiteral:
                 case SyntaxKind.StringLiteral:
                 case SyntaxKind.JSXText:
-                    var parent = node.parent;
                     switch (parent.kind) {
                         case SyntaxKind.VariableDeclaration:
                         case SyntaxKind.Parameter:
                         case SyntaxKind.Property:
                         case SyntaxKind.EnumMember:
                         case SyntaxKind.PropertyAssignment:
+                        case SyntaxKind.JSXAttribute:
                             return (<VariableDeclaration>parent).initializer === node;
                         case SyntaxKind.ExpressionStatement:
                         case SyntaxKind.IfStatement:
