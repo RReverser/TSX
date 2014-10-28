@@ -1884,7 +1884,7 @@ module ts {
                 getCompletionEntriesFromSymbols(symbols, activeCompletionSession);
             }
             else {
-                var containingObjectLiteral = mappedParent.kind !== SyntaxKind.JSXExpressionContainer &&
+                var containingObjectLiteral = (!mappedParent || mappedParent.kind !== SyntaxKind.JSXExpressionContainer) &&
                     getContainingObjectLiteralApplicableForCompletion(sourceFile.getSyntaxTree().sourceUnit(), position);
 
                 // Object literal expression, look up possible property names from contextual type
