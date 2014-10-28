@@ -6104,6 +6104,12 @@ var ts;
                     bindDeclaration(node, 4194304 /* Import */, ts.SymbolFlags.ImportExcludes);
                     break;
                 case 185 /* SourceFile */:
+                    if (node.jsxNamespace.kind !== 113 /* Missing */) {
+                        var saveParent = parent;
+                        parent = node;
+                        bind(node.jsxNamespace);
+                        parent = saveParent;
+                    }
                     if (ts.isExternalModule(node)) {
                         bindAnonymousDeclaration(node, 128 /* ValueModule */, '"' + ts.getModuleNameFromFilename(node.filename) + '"');
                         break;
@@ -6111,9 +6117,6 @@ var ts;
                 default:
                     var saveParent = parent;
                     parent = node;
-                    if (node.kind === 185 /* SourceFile */ && node.jsxNamespace.kind !== 113 /* Missing */) {
-                        bind(node.jsxNamespace);
-                    }
                     ts.forEachChild(node, bind);
                     parent = saveParent;
             }

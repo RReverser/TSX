@@ -334,6 +334,12 @@ module ts {
                     bindDeclaration(<Declaration>node, SymbolFlags.Import, SymbolFlags.ImportExcludes);
                     break;
                 case SyntaxKind.SourceFile:
+                    if ((<SourceFile>node).jsxNamespace.kind !== SyntaxKind.Missing) {
+                        var saveParent = parent;
+                        parent = node;
+                        bind((<SourceFile>node).jsxNamespace);
+                        parent = saveParent;
+                    }
                     if (isExternalModule(<SourceFile>node)) {
                         bindAnonymousDeclaration(node, SymbolFlags.ValueModule, '"' + getModuleNameFromFilename((<SourceFile>node).filename) + '"');
                         break;
@@ -341,9 +347,6 @@ module ts {
                 default:
                     var saveParent = parent;
                     parent = node;
-                    if (node.kind === SyntaxKind.SourceFile && (<SourceFile>node).jsxNamespace.kind !== SyntaxKind.Missing) {
-                        bind((<SourceFile>node).jsxNamespace);
-                    }
                     forEachChild(node, bind);
                     parent = saveParent;
             }
