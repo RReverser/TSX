@@ -463,6 +463,4 @@ module ts {
     }
 }
 
-if (sys) {
-    ts.executeCommandLine(sys.args);
-}
+ts.executeCommandLine(sys.args);
