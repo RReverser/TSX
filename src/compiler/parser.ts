@@ -2208,11 +2208,19 @@ module ts {
                             return Tristate.True;
                         }
                     } else if (token === SyntaxKind.GreaterThanToken) {
-                        nextToken();
                         if (canParseSemicolon()) {
                             return Tristate.True;
                         } else if (isMaybeTag) {
                             return Tristate.Unknown;
+                        } else if (nextToken() === SyntaxKind.OpenBraceToken) {
+                            nextToken();
+                            if (token === SyntaxKind.CloseBraceToken) {
+                                return isMaybeTag ? Tristate.Unknown : Tristate.False;
+                            } else if (token === SyntaxKind.Identifier && nextToken() === SyntaxKind.ColonToken) {
+                                return Tristate.False;
+                            } else {
+                                return Tristate.True;
+                            }
                         } else {
                             return Tristate.False;
                         }
